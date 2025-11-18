@@ -1,0 +1,103 @@
+import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:dynamic_color/dynamic_color.dart';
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+
+import 'core/services/navigation_service.dart';
+import 'core/services/notification_service.dart';
+import 'core/services/storage_service.dart';
+import 'data/models/alarm_model.dart';
+import 'data/models/radio_station.dart';
+import 'presentation/providers/alarm_provider.dart';
+import 'presentation/providers/radio_station_provider.dart';
+import 'presentation/providers/theme_provider.dart';
+import 'presentation/screens/home_screen.dart';
+import 'presentation/screens/onboarding_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Hive
+  await Hive.initFlutter();
+  Hive.registerAdapter(AlarmModelAdapter());
+  Hive.registerAdapter(RadioStationAdapter());
+  await Hive.openBox<AlarmModel>('alarms');
+  await Hive.openBox<RadioStation>('radio_stations');
+
+  // Initialize Android Alarm Manager
+  await AndroidAlarmManager.initialize();
+
+  // Initialize Storage Service
+  await StorageService.initialize();
+
+  // Initialize Notification Service
+  await NotificationService.initialize();
+
+  runApp(const MyApp());
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService.flushPendingPayload();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      NotificationService.flushPendingPayload();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AlarmProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => RadioStationProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return DynamicColorBuilder(
+            builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                themeProvider.updateDynamicColors(lightDynamic, darkDynamic);
+              });
+
+              return MaterialApp(
+                navigatorKey: NavigationService.navigatorKey,
+                title: 'Alarm Challenge',
+                debugShowCheckedModeBanner: false,
+                theme: themeProvider.lightTheme,
+                darkTheme: themeProvider.darkTheme,
+                themeMode: themeProvider.themeMode,
+                home: StorageService.hasCompletedOnboarding
+                    ? const HomeScreen()
+                    : const OnboardingScreen(),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
