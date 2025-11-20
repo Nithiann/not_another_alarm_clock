@@ -121,9 +121,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final themeMode = themeProvider.themeMode;
     final lastBackup = StorageService.lastBackupTime;
     final tiles = [
-      _buildBackupsTile(lastBackup),
-      _buildPermissionsTile(),
+      ListTile(
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Radio stations'),
+        subtitle:
+        const Text('Manage internet streams used for radio alarms.'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: _openRadioStations,
+      ),
       _buildAudioTile(),
+      _buildPermissionsTile(),
+      _buildBackupsTile(lastBackup),
     ];
 
     return Scaffold(
@@ -305,16 +313,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
             onChangeEnd: (value) => StorageService.setMaxAlarmVolume(value),
           ),
-          const Divider(),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Radio stations'),
-            subtitle:
-                const Text('Manage internet streams used for radio alarms.'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _openRadioStations,
-          ),
-          const SizedBox(height: 8),
         ],
       ),
     );
