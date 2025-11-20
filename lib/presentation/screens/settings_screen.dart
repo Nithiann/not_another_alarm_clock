@@ -132,6 +132,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _buildAudioTile(),
       _buildPermissionsTile(),
       _buildBackupsTile(lastBackup),
+      _buildAboutTile(),
     ];
 
     return Scaffold(
@@ -315,6 +316,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAboutTile() {
+    return Card(
+      child: ExpansionTile(
+        title: const Text('About'),
+        childrenPadding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Version'),
+            subtitle: const Text('0.0.1'),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Developer'),
+            subtitle: const Text('Nithiann'),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Privacy policy'),
+            subtitle: const Text('https://www.google.com'),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Terms of service'),
+            subtitle: const Text('https://www.google.com'),
+          ),
+        ],
+      )
     );
   }
 }
