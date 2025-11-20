@@ -2,12 +2,13 @@ import 'dart:async';
 
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../../core/services/audio_player_service.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/services/volume_service.dart';
 import '../../data/models/alarm_model.dart';
 import '../../data/models/radio_station.dart';
 import '../../features/challenges/base_challenge.dart';
@@ -30,10 +31,8 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
   AlarmChallenge? _challenge;
   bool _challengeSolved = false;
   bool _processing = false;
-  AudioPlayer? _radioPlayer;
   RadioStation? _station;
   bool _radioError = false;
-  Timer? _volumeTimer;
 
   @override
   void initState() {
@@ -43,10 +42,16 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
   @override
   void dispose() {
-    _radioPlayer?.dispose();
-    _volumeTimer?.cancel();
     WakelockPlus.disable();
+    // Stop alarm audio just in case the widget is disposed
+    AudioPlayerService().stop();
+    VolumeService().cancel();
     super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    super.deactivate();
   }
 
   @override
@@ -59,7 +64,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
         difficulty: _alarm!.challengeDifficulty,
       );
     }
-    if (_alarm != null && _alarm!.usesRadio && _radioPlayer == null) {
+    if (_alarm != null && _alarm!.usesRadio) {
       _startRadio();
     }
   }
@@ -70,58 +75,33 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
         .getById(_alarm!.radioStationId);
     if (station == null) return;
 
-    final player = AudioPlayer();
     try {
-      final session = await AudioSession.instance;
-      await session.configure(
-        const AudioSessionConfiguration(
-          androidAudioAttributes: AndroidAudioAttributes(
-            usage: AndroidAudioUsage.alarm,
-            contentType: AndroidAudioContentType.music,
-          ),
-          androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
-          avAudioSessionCategory: AVAudioSessionCategory.playback,
-          avAudioSessionMode: AVAudioSessionMode.defaultMode,
-          avAudioSessionCategoryOptions:
-              AVAudioSessionCategoryOptions.defaultToSpeaker,
-        ),
-      );
-      await player.setUrl(station.streamUrl);
       final maxVolume = StorageService.maxAlarmVolume;
       final gradual = StorageService.gradualVolumeEnabled;
       final minutes = StorageService.gradualVolumeMinutes;
       final startVolume = gradual ? (maxVolume * 0.2) : maxVolume;
-      await player.setVolume(startVolume);
-      await player.play();
+
+      // Play the stream
+      await AudioPlayerService().play(station.streamUrl, startVolume);
+
+      // Ramp volume if gradual is enabled
       if (gradual && minutes > 0 && maxVolume > startVolume) {
-        _volumeTimer?.cancel();
-        final totalSteps = minutes * 12; // every 5 seconds
-        final stepIncrease = (maxVolume - startVolume) / totalSteps;
-        int step = 0;
-        _volumeTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-          step++;
-          final nextVolume = (startVolume + step * stepIncrease)
-              .clamp(0.0, maxVolume);
-          player.setVolume(nextVolume);
-          if (nextVolume >= maxVolume || step >= totalSteps) {
-            timer.cancel();
-          }
-        });
+        VolumeService().rampVolume(
+          start: startVolume,
+          end: maxVolume,
+          minutes: minutes,
+          player: AudioPlayerService().player,
+        );
       }
-      if (!mounted) {
-        await player.dispose();
-        return;
-      }
+
+      if (!mounted) return;
       setState(() {
-        _radioPlayer = player;
         _station = station;
         _radioError = false;
       });
     } catch (_) {
-      await player.dispose();
       if (mounted) {
         setState(() {
-          _radioPlayer = null;
           _station = station;
           _radioError = true;
         });
@@ -145,7 +125,10 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       await provider.updateAlarm(_alarm!.copyWith(isEnabled: false));
     }
 
-    await _radioPlayer?.stop();
+    // Stop audio and cancel volume ramp
+    await AudioPlayerService().stop();
+    VolumeService().cancel();
+
     await NotificationService.cancelNotification(_alarm!.id.hashCode);
 
     if (!mounted) return;
@@ -155,10 +138,16 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
   Future<void> _snoozeAlarm() async {
     if (_alarm == null) return;
+
     setState(() => _processing = true);
     await context.read<AlarmProvider>().snoozeAlarm(_alarm!);
-    await _radioPlayer?.stop();
+
+    // Stop audio and cancel volume ramp
+    await AudioPlayerService().stop();
+    VolumeService().cancel();
+
     await NotificationService.cancelNotification(_alarm!.id.hashCode);
+
     if (!mounted) return;
     setState(() => _processing = false);
     Navigator.pop(context);

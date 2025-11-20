@@ -3,6 +3,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 import 'core/services/navigation_service.dart';
 import 'core/services/notification_service.dart';
@@ -17,6 +20,12 @@ import 'presentation/screens/onboarding_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // initialize timezone
+  tz.initializeTimeZones();
+  final timeZoneInfo = await FlutterTimezone.getLocalTimezone();
+  final timeZoneName = timeZoneInfo.identifier;
+  tz.setLocalLocation(tz.getLocation(timeZoneName));
 
   // Initialize Hive
   await Hive.initFlutter();

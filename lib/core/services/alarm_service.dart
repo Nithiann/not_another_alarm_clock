@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import '../../data/models/alarm_model.dart';
 import '../services/notification_service.dart';
 
+@pragma('vm:entry-point')
 class AlarmService {
   static final AlarmService _instance = AlarmService._internal();
   factory AlarmService() => _instance;
