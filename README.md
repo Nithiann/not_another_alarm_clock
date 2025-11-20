@@ -7,14 +7,14 @@ the user completes the challenge, ensuring they are awake. The UI is built
 with Material You principles and the app integrates with platform
 notification and background scheduling plugins.
 
-Key ideas
+### Key ideas
 - Schedule alarms with optional snooze and repeating rules.
 - Use small challenges (math, memory, etc.) as an alarm dismiss mechanism.
 - Play notification sounds and alarms using platform audio services.
 - Support persisting alarms and syncing options via device storage and
 	optional cloud sync (future work).
 
-Features
+### Features
 - Create, edit and remove alarms
 - Repeating alarms (weekday configuration)
 - Snooze with configurable duration
@@ -22,7 +22,7 @@ Features
 - Play radio streams or local sounds when alarm rings
 - Local notifications to show alarm alerts and quick actions
 
-How it works (developer summary)
+### How it works (developer summary)
 - Alarms are persisted in the app storage and scheduled using platform
 	scheduling/notification plugins.
 - When an alarm triggers, a full-screen `AlarmRingScreen` is launched to
@@ -32,16 +32,16 @@ How it works (developer summary)
 	permission and storage helpers). The UI sits in `lib/presentation` and
 	domain models live under `lib/data/models`.
 
-Project layout (important folders)
+### Project layout (important folders)
 - `lib/main.dart`: application entrypoint and top-level initialization
 - `lib/core/`: app-wide services, theme and shared utilities
 - `lib/data/`: models and generated serialization code
 - `lib/features/`: challenge implementations and challenge factory
 - `lib/presentation/`: screens, widgets and providers for state
 
-Getting started (development)
+## Getting started (development)
 
-Prerequisites
+### Prerequisites
 - Install the Flutter SDK and make sure `flutter` is available on PATH.
 - For Android: install Android Studio or the Android SDK and platform
 	tools. Enable an Android emulator or connect a device.
@@ -94,23 +94,23 @@ Troubleshooting
 - If notifications don't appear, check that notification channels are
 	created (Android) and that the app has the correct permissions.
 
-Contributing
+## Contributing
 - Open issues or PRs for bugs, feature requests and improvements.
 - Keep PRs small and focused; include screenshots and steps to reproduce
 	for UI changes.
 
-Roadmap / TODO
+## Roadmap / TODO
 1. Snooze and Wake-check (includes settings to change the Wake-Check timer)
 2. Basic sound assets
 3. Revamp design using high-fidelity wireframes
 4. Optional cloud sync (Google Drive / iCloud)
 5. Extra challenge types, difficulty levels and analytics
 
-License & attribution
+## License & attribution
 - Check `pubspec.yaml` for third-party plugin licenses. Add a LICENSE file
 	if you plan to publish this project.
 
-Contact
+## Contact
 - For questions or guidance, inspect the code under `lib/` or open an issue
 	in the repository.
 
