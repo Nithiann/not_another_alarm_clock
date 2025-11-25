@@ -1,0 +1,63 @@
+name: Flutter Pre-release APK Build
+
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code with full history (required for tagging)
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Install Flutter
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "stable"
+
+      # Retrieve version from pubspec.yaml
+      - name: Read version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          CLEAN_VERSION=$(echo "$VERSION" | cut -d+ -f1)
+          TAG="v${CLEAN_VERSION}-pre.$(date +%Y%m%d.%H%M%S)"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      # Create and push the prerelease tag
+      - name: Create prerelease tag
+        run: |
+          git config user.name "Bas Voss"
+          git config user.email "voss.bas@gmail.com"
+          git tag ${{ steps.version.outputs.tag }}
+          git push origin ${{ steps.version.outputs.tag }}
+
+      # Install dependencies
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Build APK
+      - name: Build pre-release APK
+        run: flutter build apk --release
+
+      # Upload build artifact
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-pre-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      # Create GitHub prerelease
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          prerelease: true
+          files: build/app/outputs/flutter-apk/app-release.apk
