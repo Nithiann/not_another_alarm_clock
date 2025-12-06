@@ -7,7 +7,8 @@ import '../../data/models/radio_station.dart';
 import '../providers/alarm_provider.dart';
 import '../providers/radio_station_provider.dart';
 import 'challenge_selection_bottom_sheet.dart';
-import '../screens/radio_stations_screen.dart';
+import 'sound_selection_bottom_sheet.dart';
+import 'radio_station_selection_bottom_sheet.dart';
 
 class AddAlarmBottomSheet extends StatefulWidget {
   const AddAlarmBottomSheet({super.key, this.alarm});
@@ -83,10 +84,50 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      clipBehavior: Clip.antiAlias,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      enableDrag: true,
       builder: (context) => ChallengeSelectionBottomSheet(
         selectedChallenge: _challengeType == -1 ? -1 : _challengeType,
         onChallengeSelected: (challengeType) {
           setState(() => _challengeType = challengeType == -1 ? 0 : challengeType);
+        },
+      ),
+    );
+  }
+
+  void _selectSound() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      clipBehavior: Clip.antiAlias,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      enableDrag: true,
+      builder: (context) => SoundSelectionBottomSheet(
+        selectedSoundId: _selectedTone,
+        onSoundSelected: (soundId) {
+          setState(() => _selectedTone = soundId);
+        },
+      ),
+    );
+  }
+
+  void _selectRadioStation() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      clipBehavior: Clip.antiAlias,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      enableDrag: true,
+      builder: (context) => RadioStationSelectionBottomSheet(
+        selectedStationId: _selectedRadioStationId,
+        onStationSelected: (stationId) {
+          setState(() => _selectedRadioStationId = stationId);
         },
       ),
     );
@@ -355,78 +396,168 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
                       ),
                       if (_audioSource == 'sound') ...[
                         const SizedBox(height: 16),
-                        DropdownMenu<String>(
-                          initialSelection: _selectedTone,
-                          label: const Text('Gentle Wake'),
-                          dropdownMenuEntries: [
-                            for (final option in defaultAlarmToneOptions)
-                              DropdownMenuEntry(
-                                value: option.id,
-                                label: option.label,
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _selectSound,
+                            borderRadius: BorderRadius.circular(16),
+                            splashColor: colorScheme.primary.withValues(alpha: 0.2),
+                            highlightColor: colorScheme.primary.withValues(alpha: 0.1),
+                            child: Card(
+                              color: colorScheme.primaryContainer,
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: colorScheme.primary.withValues(alpha: 0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.music_note,
+                                    color: colorScheme.onPrimaryContainer,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Alarm Sound',
+                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                            color: colorScheme.onPrimaryContainer,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          defaultAlarmToneOptions
+                                              .firstWhere(
+                                                (option) => option.id == _selectedTone,
+                                                orElse: () => defaultAlarmToneOptions.first,
+                                              )
+                                              .label,
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            color: colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primary.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.chevron_right,
+                                      color: colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                ],
                               ),
-                          ],
-                          onSelected: (value) {
-                            if (value != null) {
-                              setState(() => _selectedTone = value);
-                            }
-                          },
+                            ),
+                          ),
+                        ),
                         ),
                       ] else ...[
                         const SizedBox(height: 16),
-                        DropdownMenu<String>(
-                          initialSelection: _selectedRadioStationId,
-                          label: const Text('Radio Station'),
-                          dropdownMenuEntries: radioStations
-                              .map(
-                                (station) => DropdownMenuEntry(
-                                  value: station.id,
-                                  label: station.name,
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _selectRadioStation,
+                            borderRadius: BorderRadius.circular(16),
+                            splashColor: colorScheme.primary.withValues(alpha: 0.2),
+                            highlightColor: colorScheme.primary.withValues(alpha: 0.1),
+                            child: Card(
+                              color: colorScheme.primaryContainer,
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: colorScheme.primary.withValues(alpha: 0.3),
+                                    width: 1,
+                                  ),
                                 ),
-                              )
-                              .toList(),
-                          onSelected: (value) {
-                            setState(() => _selectedRadioStationId = value);
-                          },
-                        ),
-                        if (radioStations.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              'Add stations in settings to enable radio alarms.',
-                              style: Theme.of(context).textTheme.bodySmall,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.radio,
+                                    color: colorScheme.onPrimaryContainer,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Radio Station',
+                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                            color: colorScheme.onPrimaryContainer,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _selectedRadioStationId != null
+                                              ? (radioStations
+                                                  .firstWhere(
+                                                    (station) => station.id == _selectedRadioStationId,
+                                                    orElse: () => radioStations.first,
+                                                  )
+                                                  .name)
+                                              : 'Select a station',
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            color: colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primary.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.chevron_right,
+                                      color: colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        TextButton.icon(
-                          onPressed: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const RadioStationsScreen(),
-                              ),
-                            );
-                            if (mounted) setState(() {});
-                          },
-                          icon: const Icon(Icons.settings_outlined),
-                          label: const Text('Manage stations'),
+                        ),
                         ),
                       ],
                       const SizedBox(height: 24),
                       // Challenge
-                      InkWell(
-                        onTap: _selectChallenge,
-                        borderRadius: BorderRadius.circular(16),
-                        child: Card(
-                          color: colorScheme.primaryContainer,
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: colorScheme.primary.withValues(alpha: 0.3),
-                                width: 1,
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _selectChallenge,
+                          borderRadius: BorderRadius.circular(16),
+                          splashColor: colorScheme.primary.withValues(alpha: 0.2),
+                          highlightColor: colorScheme.primary.withValues(alpha: 0.1),
+                          child: Card(
+                            color: colorScheme.primaryContainer,
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: colorScheme.primary.withValues(alpha: 0.3),
+                                  width: 1,
+                                ),
                               ),
-                            ),
                             child: Row(
                               children: [
                                 Icon(
@@ -462,6 +593,7 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
                                   color: colorScheme.onPrimaryContainer,
                                 ),
                               ],
+                            ),
                             ),
                           ),
                         ),
@@ -525,22 +657,26 @@ class _SoundOptionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colorScheme.primaryContainer
-              : colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        splashColor: colorScheme.primary.withValues(alpha: 0.2),
+        highlightColor: colorScheme.primary.withValues(alpha: 0.1),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
             color: isSelected
-                ? colorScheme.primary
-                : Colors.transparent,
+                ? colorScheme.primaryContainer
+                : colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? colorScheme.primary
+                  : Colors.transparent,
+            ),
           ),
-        ),
         child: Column(
           children: [
             Icon(
@@ -559,6 +695,7 @@ class _SoundOptionButton extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

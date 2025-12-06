@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -7,13 +8,39 @@ import '../widgets/add_alarm_bottom_sheet.dart';
 import 'settings_screen.dart';
 import '../../core/theme/app_theme.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Timer? _timer;
+  DateTime _currentTime = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    // Update time every second
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentTime = DateTime.now();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final now = DateTime.now();
     final dateFormat = DateFormat('EEEE, MMM d');
     final timeFormat = DateFormat('HH:mm');
     
@@ -82,7 +109,7 @@ class HomeScreen extends StatelessWidget {
                             children: [
                               // Time
                               Text(
-                                timeFormat.format(now),
+                                timeFormat.format(_currentTime),
                                 style: Theme.of(context).textTheme.displayLarge?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: colorScheme.onPrimaryContainer,
@@ -91,7 +118,7 @@ class HomeScreen extends StatelessWidget {
                               const SizedBox(height: 8),
                               // Date underneath
                               Text(
-                                dateFormat.format(now),
+                                dateFormat.format(_currentTime),
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
                                 ),
@@ -190,6 +217,9 @@ class HomeScreen extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      clipBehavior: Clip.antiAlias,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (context) => AddAlarmBottomSheet(alarm: alarm),
     );
   }

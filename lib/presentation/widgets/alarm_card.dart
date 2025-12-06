@@ -22,10 +22,14 @@ class AlarmCard extends StatelessWidget {
 
     return Card(
       elevation: alarm.isEnabled ? 2 : 0,
-      child: InkWell(
-        onTap: onEdit,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onEdit,
+          borderRadius: BorderRadius.circular(12),
+          splashColor: colorScheme.primary.withValues(alpha: 0.2),
+          highlightColor: colorScheme.primary.withValues(alpha: 0.1),
+          child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,6 +117,7 @@ class AlarmCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

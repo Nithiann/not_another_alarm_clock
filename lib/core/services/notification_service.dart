@@ -92,6 +92,47 @@ class NotificationService {
     );
   }
 
+  static AndroidNotificationSound? _getAndroidNotificationSound(String alarmTone) {
+    // Check if it's a system sound
+    if (alarmTone.startsWith('system://')) {
+      // Extract the system sound identifier
+      final systemSound = alarmTone.replaceFirst('system://', '');
+      
+      // Use RingtoneManager URIs for system alarm sounds
+      // For default: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+      // This typically returns: content://settings/system/alarm_alert
+      if (systemSound == 'default') {
+        // Use default system alarm - this is the user's selected default alarm
+        return const UriAndroidNotificationSound(
+          'content://settings/system/alarm_alert',
+        );
+      } else {
+        // For specific alarms, try different URI patterns
+        // Some devices use: content://media/internal/audio/media/XX
+        // Others use: content://settings/system/alarm_alert_XX
+        // We'll try the settings path first, which is more common
+        final alarmNumber = systemSound.replaceFirst('alarm_', '');
+        
+        // Try the standard Android alarm URI pattern
+        // Note: These URIs may vary by device manufacturer
+        // If this doesn't work, we fall back to default
+        try {
+          return UriAndroidNotificationSound(
+            'content://settings/system/alarm_alert_$alarmNumber',
+          );
+        } catch (e) {
+          // Fall back to default if specific alarm not found
+          return const UriAndroidNotificationSound(
+            'content://settings/system/alarm_alert',
+          );
+        }
+      }
+    } else {
+      // Custom app sound - use raw resource
+      return RawResourceAndroidNotificationSound(alarmTone);
+    }
+  }
+
   static NotificationDetails _buildNotificationDetails(AlarmModel alarm) {
     final playSound = alarm.audioSource == 'sound';
     final androidDetails = AndroidNotificationDetails(
@@ -109,7 +150,7 @@ class NotificationService {
       ongoing: true,
       audioAttributesUsage: AudioAttributesUsage.alarm,
       sound: playSound
-          ? RawResourceAndroidNotificationSound(alarm.alarmTone)
+          ? _getAndroidNotificationSound(alarm.alarmTone)
           : null,
     );
 

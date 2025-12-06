@@ -160,27 +160,31 @@ class _ChallengeOption extends StatelessWidget {
 
     return Opacity(
       opacity: disabled ? 0.4 : 1.0,
-      child: InkWell(
-        onTap: disabled ? null : onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: disabled
-                ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
-                : (isSelected
-                    ? colorScheme.primaryContainer
-                    : colorScheme.surfaceContainerHighest),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: disabled ? null : onTap,
+          borderRadius: BorderRadius.circular(12),
+          splashColor: disabled ? null : colorScheme.primary.withValues(alpha: 0.2),
+          highlightColor: disabled ? null : colorScheme.primary.withValues(alpha: 0.1),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
               color: disabled
-                  ? Colors.transparent
+                  ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
                   : (isSelected
-                      ? colorScheme.primary
-                      : Colors.transparent),
-              width: 2,
+                      ? colorScheme.primaryContainer
+                      : colorScheme.surfaceContainerHighest),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: disabled
+                    ? Colors.transparent
+                    : (isSelected
+                        ? colorScheme.primary
+                        : Colors.transparent),
+                width: 2,
+              ),
             ),
-          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -218,6 +222,7 @@ class _ChallengeOption extends StatelessWidget {
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),

@@ -32,15 +32,18 @@ class AudioPlayerService {
       ),
     );
 
-    // Check if it's a local asset or URL
-    if (url.startsWith('assets/') || !url.contains('://')) {
+    // Check if it's a local asset, system URI, or URL
+    if (url.startsWith('assets/') || (!url.contains('://') && !url.startsWith('content://'))) {
       // Local asset file - remove 'assets/' prefix if present
       final assetPath = url.startsWith('assets/') 
           ? url.substring(7) // Remove 'assets/' prefix
           : url;
       await _player!.setAsset(assetPath);
+    } else if (url.startsWith('content://')) {
+      // System content URI (for Android system sounds)
+      await _player!.setUrl(url);
     } else {
-      // URL (radio stream)
+      // URL (radio stream or http/https)
       await _player!.setUrl(url);
     }
     

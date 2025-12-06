@@ -9,6 +9,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../core/services/audio_player_service.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/services/system_sound_service.dart';
 import '../../core/services/volume_service.dart';
 import '../../core/services/vibration_service.dart';
 import '../../core/theme/app_theme.dart';
@@ -49,6 +50,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     WakelockPlus.disable();
     // Stop alarm audio just in case the widget is disposed
     AudioPlayerService().stop();
+    SystemSoundService.stopSystemAlarm();
     VolumeService().cancel();
     VibrationService().stop();
     super.dispose();
@@ -96,7 +98,28 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       final minutes = StorageService.gradualVolumeMinutes;
       final startVolume = gradual ? (maxVolume * 0.2) : maxVolume;
 
-      // Construct asset path
+      // Check if it's a system sound
+      if (_alarm!.alarmTone.startsWith('system://')) {
+        // For system sounds, use Android's Ringtone class via platform channel
+        // This is required because Android no longer allows direct file access to ringtones
+        final systemSound = _alarm!.alarmTone.replaceFirst('system://', '');
+        
+        debugPrint('Playing system alarm sound: $systemSound');
+        
+        // Play system sound using Ringtone (looping is handled in native code)
+        final success = await SystemSoundService.playSystemAlarm(systemSound);
+        
+        if (!success) {
+          // Fall back to default system alarm if specific one fails
+          await SystemSoundService.playSystemAlarm('default');
+        }
+        
+        // Note: Volume control and gradual volume are not available for Ringtone
+        // Ringtone uses the system alarm volume setting
+        return;
+      }
+
+      // Construct asset path for custom sounds
       final soundPath = 'assets/sounds/${_alarm!.alarmTone}.mp3';
       
       // Play the sound
@@ -180,6 +203,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
     // Stop audio, vibration and cancel volume ramp
     await AudioPlayerService().stop();
+    await SystemSoundService.stopSystemAlarm();
     VolumeService().cancel();
     VibrationService().stop();
 
@@ -201,6 +225,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
     // Stop audio, vibration and cancel volume ramp
     await AudioPlayerService().stop();
+    await SystemSoundService.stopSystemAlarm();
     VolumeService().cancel();
     VibrationService().stop();
 

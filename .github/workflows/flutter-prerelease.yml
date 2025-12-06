@@ -5,12 +5,11 @@ on:
     branches:
       - development
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       # Checkout code with full history (required for tagging)
@@ -36,6 +35,8 @@ jobs:
 
       # Create and push the prerelease tag
       - name: Create prerelease tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "Bas Voss"
           git config user.email "voss.bas@gmail.com"
@@ -61,6 +62,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.version.outputs.tag }}
           prerelease: true
           files: build/app/outputs/flutter-apk/app-release.apk

@@ -1,11 +1,80 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/audio_player_service.dart';
 import '../../data/models/radio_station.dart';
 import '../providers/radio_station_provider.dart';
 
-class RadioStationsScreen extends StatelessWidget {
+class RadioStationsScreen extends StatefulWidget {
   const RadioStationsScreen({super.key});
+
+  @override
+  State<RadioStationsScreen> createState() => _RadioStationsScreenState();
+}
+
+class _RadioStationsScreenState extends State<RadioStationsScreen> {
+  String? _testingStationId;
+
+  Future<void> _testStation(RadioStation station) async {
+    if (_testingStationId == station.id) {
+      // Stop testing
+      await AudioPlayerService().stop();
+      setState(() {
+        _testingStationId = null;
+      });
+    } else {
+      // Start testing
+      if (_testingStationId != null) {
+        // Stop previous test
+        await AudioPlayerService().stop();
+      }
+
+      setState(() {
+        _testingStationId = station.id;
+      });
+
+      try {
+        await AudioPlayerService().play(station.streamUrl, 0.5);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Playing ${station.name}...'),
+              action: SnackBarAction(
+                label: 'Stop',
+                onPressed: () async {
+                  await AudioPlayerService().stop();
+                  if (mounted) {
+                    setState(() {
+                      _testingStationId = null;
+                    });
+                  }
+                },
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _testingStationId = null;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error playing station: $e'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    // Stop any playing test when leaving the screen
+    AudioPlayerService().stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +93,7 @@ class RadioStationsScreen extends StatelessWidget {
             itemCount: stations.length,
             itemBuilder: (context, index) {
               final station = stations[index];
+              final isTesting = _testingStationId == station.id;
               return Card(
                 child: ListTile(
                   title: Text(station.name),
@@ -31,6 +101,16 @@ class RadioStationsScreen extends StatelessWidget {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      IconButton(
+                        icon: Icon(
+                          isTesting ? Icons.stop : Icons.play_arrow,
+                          color: isTesting
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.primary,
+                        ),
+                        onPressed: () => _testStation(station),
+                        tooltip: isTesting ? 'Stop test' : 'Test station',
+                      ),
                       IconButton(
                         icon: const Icon(Icons.edit_outlined),
                         onPressed: () =>
