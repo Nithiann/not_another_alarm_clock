@@ -36,7 +36,7 @@ class ChallengeWidget extends StatelessWidget {
         onSnooze: onSnooze!,
         canSnooze: canSnooze,
       );
-    }
+    } 
 
     if (challenge is MathChallenge) {
       return MathChallengeWidget(
