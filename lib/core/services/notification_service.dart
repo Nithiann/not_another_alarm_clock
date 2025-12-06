@@ -349,6 +349,10 @@ class NotificationService {
       );
       
       await androidImplementation.createNotificationChannel(alarmChannel);
+      
+      // Note: USE_FULL_SCREEN_INTENT permission on Android 12+ may need to be
+      // granted manually through system settings (Settings > Apps > [App] > Special app access > Display over other apps)
+      // The full-screen intent will work automatically once this permission is granted
     }
 
     if (requestPermissions) {
