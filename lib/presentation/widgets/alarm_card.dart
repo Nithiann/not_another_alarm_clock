@@ -55,22 +55,26 @@ class AlarmCard extends StatelessWidget {
                                   : colorScheme.onSurface.withValues(alpha: 0.4),
                             ),
                           ),
+                        const SizedBox(height: 8),
+                        Text(
+                          alarm.repeatDaysString,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: alarm.isEnabled
+                                ? colorScheme.onSurface.withValues(alpha: 0.7)
+                                : colorScheme.onSurface.withValues(alpha: 0.4),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   Switch(value: alarm.isEnabled, onChanged: onToggle),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _InfoChip(
-                    icon: Icons.repeat,
-                    label: alarm.repeatDaysString,
-                    isEnabled: alarm.isEnabled,
-                  ),
                   _InfoChip(
                     icon: _getChallengeIcon(alarm.challengeType),
                     label: _getChallengeName(alarm.challengeType),
@@ -80,18 +84,14 @@ class AlarmCard extends StatelessWidget {
                     icon: alarm.usesRadio
                         ? Icons.radio_outlined
                         : Icons.music_note_outlined,
-                    label: alarm.usesRadio ? 'Radio' : 'Sound',
+                    label: alarm.usesRadio 
+                        ? (_stationName(alarm) ?? 'Radio')
+                        : _getSoundName(alarm),
                     isEnabled: alarm.isEnabled,
                   ),
-                  if (alarm.vibrate)
-                    _InfoChip(
-                      icon: Icons.vibration,
-                      label: 'Vibrate',
-                      isEnabled: alarm.isEnabled,
-                    ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
@@ -116,6 +116,23 @@ class AlarmCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String? _stationName(AlarmModel alarm) {
+    // This would need to be passed from the parent or looked up
+    return null;
+  }
+
+  String _getSoundName(AlarmModel alarm) {
+    // Return a friendly name for the sound
+    if (alarm.alarmTone.contains('gentle')) {
+      return 'Gentle Wake';
+    } else if (alarm.alarmTone.contains('morning')) {
+      return 'Morning Breeze';
+    } else if (alarm.alarmTone.contains('peaceful')) {
+      return 'Peaceful Rise';
+    }
+    return 'Alarm Sound';
   }
 
   IconData _getChallengeIcon(int type) {

@@ -32,8 +32,20 @@ class AudioPlayerService {
       ),
     );
 
-    await _player!.setUrl(url);
+    // Check if it's a local asset or URL
+    if (url.startsWith('assets/') || !url.contains('://')) {
+      // Local asset file - remove 'assets/' prefix if present
+      final assetPath = url.startsWith('assets/') 
+          ? url.substring(7) // Remove 'assets/' prefix
+          : url;
+      await _player!.setAsset(assetPath);
+    } else {
+      // URL (radio stream)
+      await _player!.setUrl(url);
+    }
+    
     await _player!.setVolume(volume);
+    await _player!.setLoopMode(LoopMode.one); // Loop the alarm sound
     await _player!.play();
   }
 

@@ -1,6 +1,21 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
+  // Helper to create gradient decoration from color scheme
+  static BoxDecoration gradientDecoration(ColorScheme colorScheme) {
+    return BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          colorScheme.primaryContainer,
+          colorScheme.secondaryContainer,
+          colorScheme.tertiaryContainer,
+        ],
+      ),
+    );
+  }
+
   // Create light theme with Material You
   static ThemeData lightTheme(ColorScheme? dynamicColorScheme) {
     final colorScheme =

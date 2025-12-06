@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -8,10 +10,13 @@ import '../../core/services/audio_player_service.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/services/volume_service.dart';
+import '../../core/services/vibration_service.dart';
+import '../../core/theme/app_theme.dart';
 import '../../data/models/alarm_model.dart';
 import '../../data/models/radio_station.dart';
 import '../../features/challenges/base_challenge.dart';
 import '../../features/challenges/challenge_factory.dart';
+import '../../core/services/alarm_service.dart';
 import '../providers/alarm_provider.dart';
 import '../providers/radio_station_provider.dart';
 import '../widgets/challenge_widget.dart';
@@ -45,6 +50,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     // Stop alarm audio just in case the widget is disposed
     AudioPlayerService().stop();
     VolumeService().cancel();
+    VibrationService().stop();
     super.dispose();
   }
 
@@ -62,9 +68,57 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
         type: _alarm!.challengeType,
         difficulty: _alarm!.challengeDifficulty,
       );
+      // Start alarm sound and vibration
+      _startAlarm();
     }
-    if (_alarm != null && _alarm!.usesRadio) {
-      _startRadio();
+  }
+
+  Future<void> _startAlarm() async {
+    if (_alarm == null) return;
+
+    // Start vibration if enabled
+    if (_alarm!.vibrate) {
+      VibrationService().startContinuousVibration();
+    }
+
+    if (_alarm!.usesRadio) {
+      await _startRadio();
+    } else {
+      // Play alarm sound
+      await _startAlarmSound();
+    }
+  }
+
+  Future<void> _startAlarmSound() async {
+    try {
+      final maxVolume = StorageService.maxAlarmVolume;
+      final gradual = StorageService.gradualVolumeEnabled;
+      final minutes = StorageService.gradualVolumeMinutes;
+      final startVolume = gradual ? (maxVolume * 0.2) : maxVolume;
+
+      // Construct asset path
+      final soundPath = 'assets/sounds/${_alarm!.alarmTone}.mp3';
+      
+      // Play the sound
+      await AudioPlayerService().play(soundPath, startVolume);
+
+      // Ramp volume if gradual is enabled
+      if (gradual && minutes > 0 && maxVolume > startVolume) {
+        VolumeService().rampVolume(
+          start: startVolume,
+          end: maxVolume,
+          minutes: minutes,
+          player: AudioPlayerService().player,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error playing alarm sound: $e');
+      // Try with default alarm sound
+      try {
+        await AudioPlayerService().play('assets/sounds/alarm_sound.mp3', StorageService.maxAlarmVolume);
+      } catch (_) {
+        debugPrint('Error playing default alarm sound');
+      }
     }
   }
 
@@ -141,15 +195,26 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     setState(() => _processing = true);
     await context.read<AlarmProvider>().snoozeAlarm(_alarm!);
 
-    // Stop audio and cancel volume ramp
+    // Stop audio, vibration and cancel volume ramp
     await AudioPlayerService().stop();
     VolumeService().cancel();
+    VibrationService().stop();
 
     await NotificationService.cancelNotification(_alarm!.id.hashCode);
 
     if (!mounted) return;
     setState(() => _processing = false);
     Navigator.pop(context);
+  }
+
+  Future<void> _scheduleWakeCheck() async {
+    if (_alarm == null) return;
+    
+    // Schedule alarm to repeat in 5 minutes (wake-check)
+    final wakeCheckTime = DateTime.now().add(const Duration(minutes: 5));
+    final wakeCheckAlarm = _alarm!.copyWith(scheduledTime: wakeCheckTime);
+    
+    await AlarmService().scheduleAlarm(wakeCheckAlarm);
   }
 
   @override
@@ -165,94 +230,89 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       );
     }
 
+    final colorScheme = Theme.of(context).colorScheme;
+    final now = DateTime.now();
+    final dateFormat = DateFormat('EEEE, MMMM d');
+    final timeFormat = DateFormat('HH:mm');
+
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 24),
-              Text(
-                _alarm!.formattedTime,
-                style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _alarm!.label ?? 'Alarm Challenge',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 32),
-              if (_alarm!.usesRadio)
-                Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Streaming ${_station?.name ?? 'radio'}',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 4),
-                        if (_radioError)
-                          Text(
-                            'Unable to start stream. Check your internet connection.',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: Colors.redAccent),
-                          )
-                        else
-                          Text(
-                            _station?.streamUrl ?? '',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        if (_radioError)
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: _startRadio,
-                              child: const Text('Retry'),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
+      body: Container(
+        decoration: AppTheme.gradientDecoration(colorScheme),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 24),
+                // Alarm bell icon
+                Icon(
+                  Icons.alarm,
+                  size: 80,
+                  color: colorScheme.onSurface,
                 ),
-              ChallengeWidget(
-                challenge: _challenge!,
-                onSolved: (value) {
-                  setState(() => _challengeSolved = value);
-                },
-              ),
-              const Spacer(),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _processing ? null : _snoozeAlarm,
-                      icon: const Icon(Icons.snooze),
-                      label: const Text('Snooze'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: _processing ? null : _dismissAlarm,
-                      icon: const Icon(Icons.check),
-                      label: Text(
-                        _challengeSolved ? 'Dismiss' : 'Solve to dismiss',
+                const SizedBox(height: 24),
+                // Current time
+                Text(
+                  timeFormat.format(now),
+                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
                       ),
-                    ),
+                ),
+                const SizedBox(height: 8),
+                // Current date
+                Text(
+                  dateFormat.format(now),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                ),
+                const SizedBox(height: 32),
+                // Alarm details
+                Text(
+                  _alarm!.label ?? 'Alarm',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: colorScheme.onSurface,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _alarm!.formattedTime,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                ),
+                if (_alarm!.usesRadio && _station != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _station!.name,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 16),
-            ],
+                const SizedBox(height: 32),
+                // Challenge widget
+                Expanded(
+                  child: ChallengeWidget(
+                    challenge: _challenge!,
+                    onSolved: (value) {
+                      setState(() => _challengeSolved = value);
+                      if (value) {
+                        // Challenge solved - automatically dismiss after a short delay
+                        Future.delayed(const Duration(seconds: 1), () {
+                          if (mounted) {
+                            _dismissAlarm();
+                          }
+                        });
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
       ),

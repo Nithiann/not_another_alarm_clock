@@ -120,20 +120,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final themeProvider = context.watch<ThemeProvider>();
     final themeMode = themeProvider.themeMode;
     final lastBackup = StorageService.lastBackupTime;
-    final tiles = [
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Radio stations'),
-        subtitle:
-        const Text('Manage internet streams used for radio alarms.'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: _openRadioStations,
-      ),
-      _buildAudioTile(),
-      _buildPermissionsTile(),
-      _buildBackupsTile(lastBackup),
-      _buildAboutTile(),
-    ];
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -142,22 +129,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Appearance section
           Text(
             'Appearance',
-            style: Theme.of(context).textTheme.titleLarge,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    'Theme',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 12),
                   SegmentedButton<ThemeMode>(
                     segments: const [
                       ButtonSegment(
                         value: ThemeMode.system,
-                        label: Text('Follow device'),
+                        label: Text('System'),
                         icon: Icon(Icons.smartphone),
                       ),
                       ButtonSegment(
@@ -183,10 +178,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          ...tiles.map((tile) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: tile,
-              )),
+          // Radio stations
+          Text(
+            'Audio',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              title: const Text('Radio stations'),
+              subtitle: const Text('Manage internet streams used for radio alarms'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _openRadioStations,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildAudioTile(),
+          const SizedBox(height: 24),
+          // Permissions
+          Text(
+            'Permissions',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildPermissionsTile(),
+          const SizedBox(height: 24),
+          // Backups
+          Text(
+            'Backup & Restore',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildBackupsTile(lastBackup),
+          const SizedBox(height: 24),
+          // About
+          Text(
+            'About',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildAboutTile(),
         ],
       ),
     );
