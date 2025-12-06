@@ -30,8 +30,15 @@ jobs:
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
           CLEAN_VERSION=$(echo "$VERSION" | cut -d+ -f1)
-          TAG="v${CLEAN_VERSION}-pre.$(date +%Y%m%d.%H%M%S)"
+          TAG="v${CLEAN_VERSION}-prerelease.$(date +%Y%m%d.%H%M%S)"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      # Get release description from the latest commit message
+      - name: Get release description from commit
+        id: description
+        run: |
+          DESCRIPTION=$(git log -1 --pretty=%B | grep -oP '(?<=Release description: ).*' || echo "No description provided")
+          echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
 
       # Create and push the prerelease tag
       - name: Create prerelease tag
@@ -42,6 +49,8 @@ jobs:
           git config user.email "voss.bas@gmail.com"
           git tag ${{ steps.version.outputs.tag }}
           git push origin ${{ steps.version.outputs.tag }}
+          echo "Tag ${{ steps.version.outputs.tag }} created with description: ${{ steps.description.outputs.description }}"
+
 
       # Install dependencies
       - name: Install dependencies

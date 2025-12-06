@@ -1,6 +1,4 @@
 import 'dart:math';
-import 'package:flutter/material.dart';
-
 import 'base_challenge.dart';
 
 class MemoryChallenge extends AlarmChallenge {
@@ -58,8 +56,9 @@ class MemoryChallenge extends AlarmChallenge {
   }
 
   List<int> _generatePattern(Random rng, int length) {
-    // Generate a pattern of unique cell indices (0-8 for a 3x3 grid)
-    final cells = List.generate(9, (index) => index);
+    // Generate a pattern of unique cell values (1-9 for a 3x3 grid)
+    // Grid is numbered 1-9 from left to right, top to bottom
+    final cells = List.generate(9, (index) => index + 1); // Values 1-9
     cells.shuffle(rng);
     return cells.take(length).toList();
   }
@@ -138,174 +137,7 @@ class MemoryChallenge extends AlarmChallenge {
 
   bool get isComplete => _completedPatterns.every((completed) => completed == true);
 
-  @override
-  Widget? buildCustomInput({required ValueChanged<bool> onCompleted}) {
-    return _MemoryChallengeWidget(
-      challenge: this,
-      onCompleted: onCompleted,
-    );
-  }
-}
-
-class _MemoryChallengeWidget extends StatefulWidget {
-  final MemoryChallenge challenge;
-  final ValueChanged<bool> onCompleted;
-
-  const _MemoryChallengeWidget({
-    required this.challenge,
-    required this.onCompleted,
-  });
-
-  @override
-  State<_MemoryChallengeWidget> createState() => _MemoryChallengeWidgetState();
-}
-
-class _MemoryChallengeWidgetState extends State<_MemoryChallengeWidget> {
-  List<int> _selectedCells = [];
-  bool _isComplete = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Auto-advance to input after showing pattern for 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted && widget.challenge.isShowingPattern) {
-        widget.challenge.startInput();
-        setState(() {});
-      }
-    });
-  }
-
-  void _onCellTap(int cellIndex) {
-    if (widget.challenge.isShowingPattern || _isComplete) return;
-
-    setState(() {
-      if (_selectedCells.contains(cellIndex)) {
-        // Remove if already selected (undo)
-        _selectedCells.remove(cellIndex);
-      } else {
-        _selectedCells.add(cellIndex);
-        
-        // Check if pattern is complete
-        if (_selectedCells.length == widget.challenge.currentPatternLength) {
-          final isValid = widget.challenge.validatePattern(_selectedCells);
-          if (isValid) {
-            _isComplete = true;
-            widget.onCompleted(true);
-          } else {
-            // Wrong pattern, reset
-            _selectedCells.clear();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Wrong pattern. Try again.')),
-            );
-          }
-        }
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final pattern = widget.challenge.currentPattern;
-    final showingPattern = widget.challenge.isShowingPattern;
-    final showingIndex = widget.challenge.showingIndex;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Level ${widget.challenge.currentLevel} of ${widget.challenge.totalLevels}',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 16),
-        if (showingPattern) ...[
-          // Show pattern cells one by one
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: 9,
-            itemBuilder: (context, index) {
-              final shouldHighlight = pattern.length > showingIndex &&
-                  pattern[showingIndex] == index;
-              
-              return GestureDetector(
-                onTap: () => widget.challenge.advanceShowingIndex(),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: shouldHighlight
-                        ? colorScheme.primary
-                        : colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Progress: ${showingIndex + 1}/${pattern.length}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ] else ...[
-          // Input mode
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: 9,
-            itemBuilder: (context, index) {
-              final isSelected = _selectedCells.contains(index);
-              final isInPattern = pattern.contains(index);
-              
-              return GestureDetector(
-                onTap: () => _onCellTap(index),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? (isInPattern && _selectedCells.indexOf(index) == pattern.indexOf(index)
-                            ? colorScheme.primary
-                            : colorScheme.error)
-                        : colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isSelected
-                          ? colorScheme.primary
-                          : colorScheme.outline,
-                    ),
-                  ),
-                  child: isSelected
-                      ? Center(
-                          child: Text(
-                            '${_selectedCells.indexOf(index) + 1}',
-                            style: TextStyle(
-                              color: colorScheme.onPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        )
-                      : null,
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Progress: ${_selectedCells.length}/${pattern.length}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-      ],
-    );
-  }
+  // Note: buildCustomInput is no longer used as we now use the factory pattern
+  // in ChallengeWidget to select the appropriate widget
 }
 

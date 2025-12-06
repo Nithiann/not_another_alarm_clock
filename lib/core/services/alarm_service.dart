@@ -90,12 +90,10 @@ class AlarmService {
     }
   }
 
-  // Snooze alarm
+  // Snooze alarm (always 10 minutes)
   Future<void> snoozeAlarm(AlarmModel alarm) async {
     try {
-      final snoozeTime = DateTime.now().add(
-        Duration(minutes: alarm.snoozeMinutes),
-      );
+      final snoozeTime = DateTime.now().add(const Duration(minutes: 10));
 
       final snoozeAlarm = alarm.copyWith(scheduledTime: snoozeTime);
 

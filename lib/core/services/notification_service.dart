@@ -3,6 +3,7 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../data/models/alarm_model.dart';
+import 'alarm_service.dart';
 import 'navigation_service.dart';
 import 'storage_service.dart';
 
@@ -55,8 +56,20 @@ class NotificationService {
 
   @pragma('vm:entry-point')
   static void _onNotificationTapped(NotificationResponse response) {
-    final alarmId = response.payload;
-    if (alarmId == null) return;
+    final payload = response.payload;
+    if (payload == null) return;
+
+    // Handle wake-check dismiss action
+    if (response.actionId == 'dismiss_wake_check' || payload.startsWith('wake_check:')) {
+      final alarmId = payload.replaceFirst('wake_check:', '');
+      // Cancel the wake-check alarm
+      final alarmService = AlarmService();
+      alarmService.cancelAlarm(alarmId);
+      return;
+    }
+
+    // Handle regular alarm tap
+    final alarmId = payload;
     if (NavigationService.canNavigate) {
       NavigationService.navigateToAlarm(alarmId);
     } else {
@@ -176,6 +189,59 @@ class NotificationService {
   // Cancel all notifications
   static Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
+  }
+
+  // Schedule wake-check notification with dismiss action
+  static Future<void> scheduleWakeCheckNotification(AlarmModel alarm) async {
+    final scheduledDate = alarm.getNextAlarmTime();
+
+    final androidDetails = AndroidNotificationDetails(
+      'wake_check_channel',
+      'Wake Check',
+      channelDescription: 'Wake check notifications',
+      importance: Importance.high,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+      category: AndroidNotificationCategory.alarm,
+      visibility: NotificationVisibility.public,
+      autoCancel: false,
+      ongoing: true,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      sound: const UriAndroidNotificationSound(
+        'content://settings/system/alarm_alert',
+      ),
+      actions: [
+        const AndroidNotificationAction(
+          'dismiss_wake_check',
+          'Dismiss',
+          showsUserInterface: false,
+          cancelNotification: true,
+        ),
+      ],
+    );
+
+    final iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      interruptionLevel: InterruptionLevel.timeSensitive,
+    );
+
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _notifications.zonedSchedule(
+      alarm.id.hashCode,
+      alarm.label ?? 'Wake Check',
+      'Slide to dismiss or the alarm will repeat',
+      tz.TZDateTime.from(scheduledDate, tz.local),
+      details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: 'wake_check:${alarm.id}',
+    );
   }
 
   // Show simple notification

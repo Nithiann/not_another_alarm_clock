@@ -38,6 +38,8 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
   bool _processing = false;
   RadioStation? _station;
   bool _radioError = false;
+  int _snoozeCount = 0;
+  static const int _maxSnoozeCount = 3;
 
   @override
   void initState() {
@@ -70,6 +72,10 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
         type: _alarm!.challengeType,
         difficulty: _alarm!.challengeDifficulty,
       );
+      // For none challenge, mark as solved immediately
+      if (_alarm!.challengeType == -1) {
+        _challengeSolved = true;
+      }
       // Start alarm sound and vibration
       _startAlarm();
     }
@@ -98,34 +104,24 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       final minutes = StorageService.gradualVolumeMinutes;
       final startVolume = gradual ? (maxVolume * 0.2) : maxVolume;
 
-      // Check if it's a system sound
       if (_alarm!.alarmTone.startsWith('system://')) {
-        // For system sounds, use Android's Ringtone class via platform channel
-        // This is required because Android no longer allows direct file access to ringtones
         final systemSound = _alarm!.alarmTone.replaceFirst('system://', '');
         
         debugPrint('Playing system alarm sound: $systemSound');
         
-        // Play system sound using Ringtone (looping is handled in native code)
         final success = await SystemSoundService.playSystemAlarm(systemSound);
         
         if (!success) {
-          // Fall back to default system alarm if specific one fails
           await SystemSoundService.playSystemAlarm('default');
         }
         
-        // Note: Volume control and gradual volume are not available for Ringtone
-        // Ringtone uses the system alarm volume setting
         return;
       }
 
-      // Construct asset path for custom sounds
       final soundPath = 'assets/sounds/${_alarm!.alarmTone}.mp3';
       
-      // Play the sound
       await AudioPlayerService().play(soundPath, startVolume);
 
-      // Ramp volume if gradual is enabled
       if (gradual && minutes > 0 && maxVolume > startVolume) {
         VolumeService().rampVolume(
           start: startVolume,
@@ -187,7 +183,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
   Future<void> _dismissAlarm() async {
     if (_alarm == null) return;
-    if (!_challengeSolved) {
+    if (!_challengeSolved && _alarm!.challengeType != -1) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Complete the challenge to dismiss')),
       );
@@ -201,7 +197,6 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       await provider.updateAlarm(_alarm!.copyWith(isEnabled: false));
     }
 
-    // Stop audio, vibration and cancel volume ramp
     await AudioPlayerService().stop();
     await SystemSoundService.stopSystemAlarm();
     VolumeService().cancel();
@@ -209,7 +204,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
     await NotificationService.cancelNotification(_alarm!.id.hashCode);
     
-    // Schedule wake-check (repeat alarm in 5 minutes)
+    // Schedule wake-check with 5 minutes
     await _scheduleWakeCheck();
 
     if (!mounted) return;
@@ -219,11 +214,21 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
   Future<void> _snoozeAlarm() async {
     if (_alarm == null) return;
+    if (_snoozeCount >= _maxSnoozeCount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximum snooze limit reached')),
+      );
+      return;
+    }
 
-    setState(() => _processing = true);
-    await context.read<AlarmProvider>().snoozeAlarm(_alarm!);
+    setState(() {
+      _processing = true;
+      _snoozeCount++;
+    });
 
-    // Stop audio, vibration and cancel volume ramp
+    // Use AlarmService to snooze (10 minutes)
+    await AlarmService().snoozeAlarm(_alarm!);
+
     await AudioPlayerService().stop();
     await SystemSoundService.stopSystemAlarm();
     VolumeService().cancel();
@@ -239,11 +244,17 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
   Future<void> _scheduleWakeCheck() async {
     if (_alarm == null) return;
     
-    // Schedule alarm to repeat in 5 minutes (wake-check)
+    // Schedule wake-check alarm in 5 minutes
     final wakeCheckTime = DateTime.now().add(const Duration(minutes: 5));
-    final wakeCheckAlarm = _alarm!.copyWith(scheduledTime: wakeCheckTime);
+    final wakeCheckAlarm = _alarm!.copyWith(
+      scheduledTime: wakeCheckTime,
+      label: _alarm!.label != null ? '${_alarm!.label} (Wake Check)' : 'Wake Check',
+    );
     
     await AlarmService().scheduleAlarm(wakeCheckAlarm);
+    
+    // Schedule wake-check notification with dismiss action
+    await NotificationService.scheduleWakeCheckNotification(wakeCheckAlarm);
   }
 
   @override
@@ -286,14 +297,12 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Alarm bell icon
                         Icon(
                           Icons.alarm,
                           size: 80,
                           color: colorScheme.onSurface,
                         ),
                         const SizedBox(height: 24),
-                        // Current time
                         Text(
                           timeFormat.format(now),
                           style: Theme.of(context).textTheme.displayLarge?.copyWith(
@@ -302,7 +311,6 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
                               ),
                         ),
                         const SizedBox(height: 8),
-                        // Current date
                         Text(
                           dateFormat.format(now),
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -310,7 +318,6 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
                               ),
                         ),
                         const SizedBox(height: 32),
-                        // Alarm details
                         Text(
                           _alarm!.label ?? 'Alarm',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -334,14 +341,13 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
                           ),
                         ],
                         const SizedBox(height: 32),
-                        // Challenge widget - flexible to take available space
                         Flexible(
                           child: ChallengeWidget(
                             challenge: _challenge!,
                             onSolved: (value) {
                               setState(() => _challengeSolved = value);
-                              if (value) {
-                                // Challenge solved - automatically dismiss after a short delay
+                              if (value && _alarm!.challengeType != -1) {
+                                // Auto-dismiss after challenge completion (except for none challenge)
                                 Future.delayed(const Duration(seconds: 1), () {
                                   if (mounted) {
                                     _dismissAlarm();
@@ -349,6 +355,9 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
                                 });
                               }
                             },
+                            onDismiss: _alarm!.challengeType == -1 ? _dismissAlarm : null,
+                            onSnooze: _snoozeAlarm,
+                            canSnooze: _snoozeCount < _maxSnoozeCount,
                           ),
                         ),
                         SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 16 : 24),

@@ -94,7 +94,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
               return MaterialApp(
                 navigatorKey: NavigationService.navigatorKey,
-                title: 'Alarm Challenge',
+                title: 'Not Another Alarm Clock',
                 debugShowCheckedModeBanner: false,
                 theme: themeProvider.lightTheme,
                 darkTheme: themeProvider.darkTheme,

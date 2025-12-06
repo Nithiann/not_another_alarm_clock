@@ -68,7 +68,6 @@ class ChallengeSelectionBottomSheet extends StatelessWidget {
                   label: 'None',
                   description: 'Dismiss easily',
                   isSelected: selectedChallenge == -1,
-                  disabled: true,
                   onTap: () {
                     onChallengeSelected(-1);
                     Navigator.pop(context);
@@ -88,7 +87,6 @@ class ChallengeSelectionBottomSheet extends StatelessWidget {
                   icon: Icons.psychology_outlined,
                   label: 'Memory',
                   description: 'Remember pattern sequence',
-                  disabled: true,
                   isSelected: selectedChallenge == 1,
                   onTap: () {
                     onChallengeSelected(1);

@@ -69,6 +69,8 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
     }
   }
 
+  
+
   void _toggleDay(int dayIndex) {
     setState(() {
       if (_repeatDays.contains(dayIndex)) {
@@ -91,7 +93,7 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
       builder: (context) => ChallengeSelectionBottomSheet(
         selectedChallenge: _challengeType == -1 ? -1 : _challengeType,
         onChallengeSelected: (challengeType) {
-          setState(() => _challengeType = challengeType == -1 ? 0 : challengeType);
+          setState(() => _challengeType = challengeType == -1 ? -1 : challengeType);
         },
       ),
     );
@@ -466,6 +468,7 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
                         ),
                       ] else ...[
                         const SizedBox(height: 16),
+                        // Radio station
                         Material(
                           color: Colors.transparent,
                           child: InkWell(
@@ -537,6 +540,29 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
                         ),
                         ),
                       ],
+                      const SizedBox(height: 24),
+                      // Snooze minutes
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Snooze minutes',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          Slider(
+                            value: _snoozeMinutes.toDouble(),
+                            min: 1,
+                            max: 20,
+                            divisions: 59,
+                            label: '$_snoozeMinutes minutes',
+                            onChanged: (value) {
+                              setState(() => _snoozeMinutes = value.round());
+                            },
+                          ),
+                        ],
+                      ),
+
                       const SizedBox(height: 24),
                       // Challenge
                       Material(
