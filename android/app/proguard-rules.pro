@@ -23,3 +23,9 @@
 # Preserve serializable classes (used by alarm callbacks)
 -keep class * implements java.io.Serializable { *; }
 
+# Ignore missing Google Play Core classes (optional dependency for split installs)
+# These are referenced by Flutter but not needed for standard builds
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+
