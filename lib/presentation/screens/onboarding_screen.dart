@@ -85,9 +85,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   },
                   children: [
                     _OnboardingPage(
-                      title: 'Welcome to Alarm Challenge',
+                      title: 'Oowh nooo! Not Another Alarm Clock',
                       description:
-                          'Create smarter alarms that use Material You, fun challenges,'
+                          'Yes, you are seeing that right! its a alarm clock but with a twist.'
+                          'You can set up alarms and challenges to wake you up.'
                           ' and future mini-games to ensure you wake up on time.',
                       icon: Icons.alarm,
                       color: colorScheme.primaryContainer,
@@ -95,9 +96,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     _OnboardingPage(
                       title: 'Smart wake-up tools',
                       description:
-                          '• Math & memory challenges\n'
+                          '• Math & memory challenges\n (coming soon)\n'
                           '• Radio alarm streams\n'
-                          '• Google Drive backups\n'
+                          '• Google Drive backups\n (coming soon)\n'
                           '• Vibration & snooze controls',
                       icon: Icons.tips_and_updates_outlined,
                       color: colorScheme.secondaryContainer,
