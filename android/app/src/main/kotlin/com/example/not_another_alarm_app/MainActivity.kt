@@ -1,18 +1,41 @@
 package com.nithiann.not_another_alarm_clock
 
+import android.content.Context
+import android.content.Intent
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
+import android.os.PowerManager
+import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.nithiann.not_another_alarm_clock/system_sounds"
+    private val APP_LAUNCH_CHANNEL = "com.nithiann.not_another_alarm_clock/app_launch"
     private var currentMediaPlayer: MediaPlayer? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        
+        // Method channel for app launch
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, APP_LAUNCH_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "launchApp" -> {
+                    try {
+                        launchAppFromBackground()
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("ERROR", "Failed to launch app: ${e.message}", null)
+                    }
+                }
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+        
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "getSystemAlarmUri" -> {
@@ -125,5 +148,31 @@ class MainActivity : FlutterActivity() {
         currentMediaPlayer?.stop()
         currentMediaPlayer?.release()
         currentMediaPlayer = null
+    }
+    
+    private fun launchAppFromBackground() {
+        // This method is called from the background isolate
+        // We need to launch the MainActivity from a context
+        val context = applicationContext
+        val intent = Intent(context, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+        }
+        context.startActivity(intent)
+    }
+    
+    companion object {
+        @JvmStatic
+        fun launchApp(context: Context) {
+            val intent = Intent(context, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+            }
+            context.startActivity(intent)
+        }
     }
 }

@@ -183,7 +183,7 @@ class NotificationService {
       priority: Priority.max,
       playSound: playSound,
       enableVibration: alarm.vibrate,
-      fullScreenIntent: true,
+      fullScreenIntent: true, // This will launch the app when phone is locked
       category: AndroidNotificationCategory.alarm,
       visibility: NotificationVisibility.public,
       autoCancel: false,

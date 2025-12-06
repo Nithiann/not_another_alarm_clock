@@ -63,6 +63,15 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name=".AlarmReceiver"
+            android:enabled="true"
+            android:exported="false"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+            <intent-filter>
+                <action android:name="com.nithiann.not_another_alarm_clock.ALARM_TRIGGERED" />
+            </intent-filter>
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
