@@ -51,8 +51,6 @@ class ChallengeWidget extends StatelessWidget {
       return MemoryChallengeWidget(
         challenge: challenge as MemoryChallenge,
         onSolved: onSolved,
-        onSnooze: onSnooze,
-        canSnooze: canSnooze,
       );
     }
 

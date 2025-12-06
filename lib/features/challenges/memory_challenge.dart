@@ -97,35 +97,35 @@ class MemoryChallenge extends AlarmChallenge {
   }
 
   bool validatePattern(List<int> selectedCells) {
-    if (_patterns.isEmpty || _currentPatternIndex >= _patterns.length) {
-      return false;
-    }
-
-    final correctPattern = _patterns[_currentPatternIndex];
-    if (selectedCells.length != correctPattern.length) {
-      return false;
-    }
-
-    final isCorrect = selectedCells.every((cell) => correctPattern.contains(cell)) &&
-        selectedCells.length == correctPattern.length &&
-        _areSequencesEqual(selectedCells, correctPattern);
-
-    if (isCorrect) {
-      _completedPatterns[_currentPatternIndex] = true;
-      // Move to next pattern if available
-      if (_currentPatternIndex < _patterns.length - 1) {
-        _currentPatternIndex++;
-        _showingPattern = true;
-        _showingIndex = 0;
-        return false; // Return false to indicate more patterns remain
-      } else {
-        // All patterns completed
-        return true;
-      }
-    }
-
+  if (_patterns.isEmpty || _currentPatternIndex >= _patterns.length) {
     return false;
   }
+  
+  final correctPattern = _patterns[_currentPatternIndex];
+  if (selectedCells.length != correctPattern.length) {
+    return false;
+  }
+  
+  final isCorrect = _areSequencesEqual(selectedCells, correctPattern);
+  
+  if (isCorrect) {
+    _completedPatterns[_currentPatternIndex] = true;
+    // Move to next pattern if available
+    if (_currentPatternIndex < _patterns.length - 1) {
+      _currentPatternIndex++;
+      _showingPattern = true;
+      _showingIndex = 0;
+    }
+    // Return true to indicate the answer was correct
+    return true;
+  } else {
+    // Pattern was wrong - just reset to show same pattern again (don't regenerate)
+    _showingPattern = true;
+    _showingIndex = 0;
+    return false;
+  }
+}
+
 
   bool _areSequencesEqual(List<int> a, List<int> b) {
     if (a.length != b.length) return false;

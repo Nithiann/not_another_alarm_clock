@@ -258,119 +258,107 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (_alarm == null || _challenge == null) {
-      return Scaffold(
-        body: Center(
-          child: TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Alarm not found. Return'),
-          ),
-        ),
-      );
-    }
-
-    final colorScheme = Theme.of(context).colorScheme;
-    final now = DateTime.now();
-    final dateFormat = DateFormat('EEEE, MMMM d');
-    final timeFormat = DateFormat('HH:mm');
-
+Widget build(BuildContext context) {
+  if (_alarm == null || _challenge == null) {
     return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: Container(
-        decoration: AppTheme.gradientDecoration(colorScheme),
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                padding: EdgeInsets.only(
-                  left: 24,
-                  right: 24,
-                  top: 24,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-                ),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight - MediaQuery.of(context).viewInsets.bottom,
-                  ),
-                  child: IntrinsicHeight(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.alarm,
-                          size: 80,
-                          color: colorScheme.onSurface,
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          timeFormat.format(now),
-                          style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.onSurface,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          dateFormat.format(now),
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: colorScheme.onSurface.withValues(alpha: 0.7),
-                              ),
-                        ),
-                        const SizedBox(height: 32),
-                        Text(
-                          _alarm!.label ?? 'Alarm',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                color: colorScheme.onSurface,
-                              ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _alarm!.formattedTime,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: colorScheme.onSurface.withValues(alpha: 0.7),
-                              ),
-                        ),
-                        if (_alarm!.usesRadio && _station != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            _station!.name,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: colorScheme.onSurface.withValues(alpha: 0.7),
-                                ),
-                          ),
-                        ],
-                        const SizedBox(height: 32),
-                        Flexible(
-                          child: ChallengeWidget(
-                            challenge: _challenge!,
-                            onSolved: (value) {
-                              setState(() => _challengeSolved = value);
-                              if (value && _alarm!.challengeType != -1) {
-                                // Auto-dismiss after challenge completion (except for none challenge)
-                                Future.delayed(const Duration(seconds: 1), () {
-                                  if (mounted) {
-                                    _dismissAlarm();
-                                  }
-                                });
-                              }
-                            },
-                            onDismiss: _alarm!.challengeType == -1 ? _dismissAlarm : null,
-                            onSnooze: _snoozeAlarm,
-                            canSnooze: _snoozeCount < _maxSnoozeCount,
-                          ),
-                        ),
-                        SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 16 : 24),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+      body: Center(
+        child: TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Alarm not found. Return'),
         ),
       ),
     );
   }
+
+  final colorScheme = Theme.of(context).colorScheme;
+  final now = DateTime.now();
+  final dateFormat = DateFormat('EEEE, MMMM d');
+  final timeFormat = DateFormat('HH:mm');
+
+  return Scaffold(
+    resizeToAvoidBottomInset: true,
+    body: Container(
+      decoration: AppTheme.gradientDecoration(colorScheme),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.alarm,
+                size: 80,
+                color: colorScheme.onSurface,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                timeFormat.format(now),
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                dateFormat.format(now),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                _alarm!.label ?? 'Alarm',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _alarm!.formattedTime,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+              ),
+              if (_alarm!.usesRadio && _station != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  _station!.name,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                ),
+              ],
+              const SizedBox(height: 32),
+              ChallengeWidget(
+                challenge: _challenge!,
+                onSolved: (value) {
+                  setState(() => _challengeSolved = value);
+                  if (value && _alarm!.challengeType != -1) {
+                    // Auto-dismiss after challenge completion (except for none challenge)
+                    Future.delayed(const Duration(seconds: 1), () {
+                      if (mounted) {
+                        _dismissAlarm();
+                      }
+                    });
+                  }
+                },
+                onDismiss: _alarm!.challengeType == -1 ? _dismissAlarm : null,
+                onSnooze: _snoozeAlarm,
+                canSnooze: _snoozeCount < _maxSnoozeCount,
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
 }
 

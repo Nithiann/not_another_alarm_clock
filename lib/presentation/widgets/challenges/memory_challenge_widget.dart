@@ -25,6 +25,7 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
   bool _isComplete = false;
   bool _isShowingPattern = true;
   int _currentShowingIndex = 0;
+  List<int> _patternBeingShown = []; // Store the pattern we're currently showing
   Timer? _patternTimer;
 
   @override
@@ -40,13 +41,28 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
   }
 
   void _startShowingPattern() {
-    _isShowingPattern = true;
-    _currentShowingIndex = 0;
-    _selectedCells.clear();
-    _isComplete = false;
+    // Cancel any existing timer first
+    _patternTimer?.cancel();
+    
+    // Get the current pattern once at the start and store it
+    // This ensures we show the complete pattern even if the challenge state changes
+    final patternToShow = List<int>.from(widget.challenge.currentPattern);
+    if (patternToShow.isEmpty) {
+      return;
+    }
+
+    // Reset state and store the pattern we're about to show
+    setState(() {
+      _isShowingPattern = true;
+      _currentShowingIndex = 0;
+      _selectedCells.clear();
+      _isComplete = false;
+      _patternBeingShown = patternToShow; // Store the pattern
+    });
 
     // Show pattern automatically - each cell lights up for 800ms
-    _patternTimer?.cancel();
+    // Start immediately with index 0 (already set above), then advance every 800ms
+    int tickCount = 0;
     _patternTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -54,8 +70,10 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
       }
 
       setState(() {
-        if (_currentShowingIndex < widget.challenge.currentPattern.length - 1) {
-          _currentShowingIndex++;
+        tickCount++;
+        // Advance to next cell in the pattern
+        if (tickCount < _patternBeingShown.length) {
+          _currentShowingIndex = tickCount;
         } else {
           // Pattern showing complete, wait a bit then switch to input mode
           timer.cancel();
@@ -64,6 +82,7 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
               setState(() {
                 _isShowingPattern = false;
                 _currentShowingIndex = 0;
+                _patternBeingShown = []; // Clear when done showing
               });
             }
           });
@@ -89,27 +108,55 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
         // Check if pattern is complete
         if (_selectedCells.length == widget.challenge.currentPatternLength) {
           final isValid = widget.challenge.validatePattern(_selectedCells);
-          if (isValid) {
+          
+          if (isValid && widget.challenge.isComplete) {
+            // All patterns completed!
             _isComplete = true;
             widget.onSolved(true);
-            
-            // If there are more patterns, wait a bit then show next
-            if (!widget.challenge.isComplete) {
-              Future.delayed(const Duration(seconds: 2), () {
-                if (mounted) {
-                  _startShowingPattern();
-                }
-              });
-            }
+          } else if (isValid) {
+            // Correct pattern, but more to go - challenge already moved to next pattern
+            widget.onSolved(false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Correct! Level ${widget.challenge.currentLevel - 1} of ${widget.challenge.totalLevels} complete. Next pattern...'),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+            // Clear the input quickly, then show next pattern after delay
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                setState(() {
+                  _selectedCells.clear();
+                });
+                Future.delayed(const Duration(milliseconds: 2500), () {
+                  if (mounted) {
+                    _startShowingPattern();
+                  }
+                });
+              }
+            });
           } else {
-            // Wrong pattern, reset
-            _selectedCells.clear();
+            // Wrong pattern - show same pattern again (challenge already reset to show same pattern)
+            widget.onSolved(false);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Wrong pattern. Try again.'),
+                content: Text('Wrong pattern. Try again - watch carefully!'),
                 duration: Duration(seconds: 2),
               ),
             );
+            // Clear input quickly, then show same pattern again
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                setState(() {
+                  _selectedCells.clear();
+                });
+                Future.delayed(const Duration(milliseconds: 1500), () {
+                  if (mounted) {
+                    _startShowingPattern();
+                  }
+                });
+              }
+            });
           }
         }
       }
@@ -119,7 +166,6 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final pattern = widget.challenge.currentPattern;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,12 +203,15 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
             final cellValue = index + 1;
             
             // For showing pattern: highlight if it's the current cell being shown
+            // Use the stored pattern being shown to ensure consistency
+            final patternToCheck = _isShowingPattern ? _patternBeingShown : widget.challenge.currentPattern;
             final isCurrentlyHighlighted = _isShowingPattern &&
-                _currentShowingIndex < pattern.length &&
-                pattern[_currentShowingIndex] == cellValue;
+                _currentShowingIndex < patternToCheck.length &&
+                patternToCheck[_currentShowingIndex] == cellValue;
             
             // For input mode: check if selected
             final isSelected = !_isShowingPattern && _selectedCells.contains(cellValue);
+            final currentPatternForInput = widget.challenge.currentPattern;
             final selectionOrder = !_isShowingPattern && isSelected
                 ? _selectedCells.indexOf(cellValue)
                 : -1;
@@ -182,8 +231,8 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
                         ? colorScheme.primary
                         : isSelected
                             ? (selectionOrder >= 0 && 
-                                selectionOrder < pattern.length &&
-                                pattern[selectionOrder] == cellValue
+                                selectionOrder < currentPatternForInput.length &&
+                                currentPatternForInput[selectionOrder] == cellValue
                                 ? colorScheme.primary
                                 : colorScheme.error)
                             : colorScheme.surfaceContainerHighest,
@@ -225,7 +274,7 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
         const SizedBox(height: 16),
         if (_isShowingPattern) ...[
           Text(
-            'Watch the sequence: ${_currentShowingIndex + 1}/${pattern.length}',
+            'Watch the sequence: ${_currentShowingIndex + 1}/${widget.challenge.currentPattern.length}',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: colorScheme.primary,
               fontWeight: FontWeight.w500,
@@ -233,9 +282,9 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
           ),
         ] else ...[
           Text(
-            'Tap the cells in order: ${_selectedCells.length}/${pattern.length}',
+            'Tap the cells in order: ${_selectedCells.length}/${widget.challenge.currentPattern.length}',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: _selectedCells.length == pattern.length
+              color: _selectedCells.length == widget.challenge.currentPattern.length
                   ? colorScheme.primary
                   : colorScheme.onSurface,
               fontWeight: FontWeight.w500,
