@@ -369,6 +369,28 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
                         }),
                       ),
                       const SizedBox(height: 24),
+                      // Snooze minutes
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Snooze minutes',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          Slider(
+                            value: _snoozeMinutes.toDouble(),
+                            min: 1,
+                            max: 20,
+                            divisions: 59,
+                            label: '$_snoozeMinutes minutes',
+                            onChanged: (value) {
+                              setState(() => _snoozeMinutes = value.round());
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
                       // Sound options
                       Text(
                         'Sound',
@@ -540,29 +562,6 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
                         ),
                         ),
                       ],
-                      const SizedBox(height: 24),
-                      // Snooze minutes
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Snooze minutes',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 8),
-                          Slider(
-                            value: _snoozeMinutes.toDouble(),
-                            min: 1,
-                            max: 20,
-                            divisions: 59,
-                            label: '$_snoozeMinutes minutes',
-                            onChanged: (value) {
-                              setState(() => _snoozeMinutes = value.round());
-                            },
-                          ),
-                        ],
-                      ),
-
                       const SizedBox(height: 24),
                       // Challenge
                       Material(
