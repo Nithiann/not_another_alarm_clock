@@ -54,6 +54,8 @@ class NotificationService {
     }
   }
 
+  // Top-level function for notification tap handler
+  // This must be a top-level function for release builds to work properly
   @pragma('vm:entry-point')
   static void _onNotificationTapped(NotificationResponse response) {
     final payload = response.payload;
@@ -68,12 +70,19 @@ class NotificationService {
       return;
     }
 
-    // Handle regular alarm tap
+    // Handle regular alarm tap - always store payload so app can open it
     final alarmId = payload;
+    // Store the payload so the app can open it when it starts or resumes
+    StorageService.setPendingAlarmPayload(alarmId);
+    
+    // If app is already running, try to navigate immediately
     if (NavigationService.canNavigate) {
-      NavigationService.navigateToAlarm(alarmId);
-    } else {
-      StorageService.setPendingAlarmPayload(alarmId);
+      // Use a small delay to ensure the app is ready
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (NavigationService.canNavigate) {
+          NavigationService.navigateToAlarm(alarmId);
+        }
+      });
     }
   }
 

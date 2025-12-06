@@ -3,6 +3,36 @@ import 'package:flutter/widgets.dart';
 
 import '../../data/models/alarm_model.dart';
 import '../services/notification_service.dart';
+import '../services/storage_service.dart';
+
+// Top-level callback function for alarm trigger
+// This must be a top-level function for release builds to work properly
+@pragma('vm:entry-point')
+Future<void> alarmCallback(int id, Map<String, dynamic> params) async {
+  debugPrint('Alarm triggered with ID: $id');
+
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    await NotificationService.ensureBackgroundInitialized();
+
+    // Recreate alarm model from params
+    final alarm = AlarmModel.fromJson(params);
+
+    // Store the alarm ID so the app can open it when it starts
+    await StorageService.setPendingAlarmPayload(alarm.id);
+
+    // Show full screen notification
+    await NotificationService.showAlarmNotification(alarm);
+
+    // If it's a repeating alarm, reschedule it
+    if (alarm.isRepeating) {
+      final alarmService = AlarmService();
+      await alarmService.scheduleAlarm(alarm);
+    }
+  } catch (e) {
+    debugPrint('Error in alarm callback: $e');
+  }
+}
 
 @pragma('vm:entry-point')
 class AlarmService {
@@ -20,10 +50,11 @@ class AlarmService {
       await cancelAlarm(alarm.id);
 
       // Schedule the alarm using AndroidAlarmManager
+      // Use the top-level function for better release build compatibility
       final success = await AndroidAlarmManager.oneShotAt(
         nextAlarmTime,
         alarmId,
-        _alarmCallback,
+        alarmCallback,
         exact: true,
         wakeup: true,
         rescheduleOnReboot: true,
@@ -59,34 +90,6 @@ class AlarmService {
   Future<void> rescheduleRepeatingAlarm(AlarmModel alarm) async {
     if (alarm.isRepeating && alarm.isEnabled) {
       await scheduleAlarm(alarm);
-    }
-  }
-
-  // Static callback function for alarm trigger
-  @pragma('vm:entry-point')
-  static Future<void> _alarmCallback(
-    int id,
-    Map<String, dynamic> params,
-  ) async {
-    debugPrint('Alarm triggered with ID: $id');
-
-    try {
-      WidgetsFlutterBinding.ensureInitialized();
-      await NotificationService.ensureBackgroundInitialized();
-
-      // Recreate alarm model from params
-      final alarm = AlarmModel.fromJson(params);
-
-      // Show full screen notification
-      await NotificationService.showAlarmNotification(alarm);
-
-      // If it's a repeating alarm, reschedule it
-      if (alarm.isRepeating) {
-        final alarmService = AlarmService();
-        await alarmService.scheduleAlarm(alarm);
-      }
-    } catch (e) {
-      debugPrint('Error in alarm callback: $e');
     }
   }
 
