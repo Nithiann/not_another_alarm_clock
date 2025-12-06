@@ -19,7 +19,7 @@ class HomeScreen extends StatelessWidget {
     
     return Scaffold(
       body: Container(
-        decoration: AppTheme.gradientDecoration(colorScheme),
+        decoration: AppTheme.darkerGradientDecoration(colorScheme),
         child: SafeArea(
           child: Column(
             children: [

@@ -178,11 +178,15 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       await provider.updateAlarm(_alarm!.copyWith(isEnabled: false));
     }
 
-    // Stop audio and cancel volume ramp
+    // Stop audio, vibration and cancel volume ramp
     await AudioPlayerService().stop();
     VolumeService().cancel();
+    VibrationService().stop();
 
     await NotificationService.cancelNotification(_alarm!.id.hashCode);
+    
+    // Schedule wake-check (repeat alarm in 5 minutes)
+    await _scheduleWakeCheck();
 
     if (!mounted) return;
     setState(() => _processing = false);
@@ -236,83 +240,99 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     final timeFormat = DateFormat('HH:mm');
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Container(
         decoration: AppTheme.gradientDecoration(colorScheme),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 24),
-                // Alarm bell icon
-                Icon(
-                  Icons.alarm,
-                  size: 80,
-                  color: colorScheme.onSurface,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  left: 24,
+                  right: 24,
+                  top: 24,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
                 ),
-                const SizedBox(height: 24),
-                // Current time
-                Text(
-                  timeFormat.format(now),
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                // Current date
-                Text(
-                  dateFormat.format(now),
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                ),
-                const SizedBox(height: 32),
-                // Alarm details
-                Text(
-                  _alarm!.label ?? 'Alarm',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: colorScheme.onSurface,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _alarm!.formattedTime,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                ),
-                if (_alarm!.usesRadio && _station != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    _station!.name,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurface.withValues(alpha: 0.7),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Alarm bell icon
+                        Icon(
+                          Icons.alarm,
+                          size: 80,
+                          color: colorScheme.onSurface,
                         ),
-                  ),
-                ],
-                const SizedBox(height: 32),
-                // Challenge widget
-                Expanded(
-                  child: ChallengeWidget(
-                    challenge: _challenge!,
-                    onSolved: (value) {
-                      setState(() => _challengeSolved = value);
-                      if (value) {
-                        // Challenge solved - automatically dismiss after a short delay
-                        Future.delayed(const Duration(seconds: 1), () {
-                          if (mounted) {
-                            _dismissAlarm();
-                          }
-                        });
-                      }
-                    },
+                        const SizedBox(height: 24),
+                        // Current time
+                        Text(
+                          timeFormat.format(now),
+                          style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Current date
+                        Text(
+                          dateFormat.format(now),
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: colorScheme.onSurface.withValues(alpha: 0.7),
+                              ),
+                        ),
+                        const SizedBox(height: 32),
+                        // Alarm details
+                        Text(
+                          _alarm!.label ?? 'Alarm',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: colorScheme.onSurface,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _alarm!.formattedTime,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: colorScheme.onSurface.withValues(alpha: 0.7),
+                              ),
+                        ),
+                        if (_alarm!.usesRadio && _station != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            _station!.name,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurface.withValues(alpha: 0.7),
+                                ),
+                          ),
+                        ],
+                        const SizedBox(height: 32),
+                        // Challenge widget - flexible to take available space
+                        Flexible(
+                          child: ChallengeWidget(
+                            challenge: _challenge!,
+                            onSolved: (value) {
+                              setState(() => _challengeSolved = value);
+                              if (value) {
+                                // Challenge solved - automatically dismiss after a short delay
+                                Future.delayed(const Duration(seconds: 1), () {
+                                  if (mounted) {
+                                    _dismissAlarm();
+                                  }
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                        SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 16 : 24),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 24),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),

@@ -16,6 +16,35 @@ class AppTheme {
     );
   }
 
+  // Helper to create darker gradient decoration for list pages
+  static BoxDecoration darkerGradientDecoration(ColorScheme colorScheme) {
+    // Create darker versions of the colors by blending with surface
+    final primaryDark = Color.alphaBlend(
+      colorScheme.surface.withValues(alpha: 0.6),
+      colorScheme.primaryContainer,
+    );
+    final secondaryDark = Color.alphaBlend(
+      colorScheme.surface.withValues(alpha: 0.6),
+      colorScheme.secondaryContainer,
+    );
+    final tertiaryDark = Color.alphaBlend(
+      colorScheme.surface.withValues(alpha: 0.6),
+      colorScheme.tertiaryContainer,
+    );
+    
+    return BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          primaryDark,
+          secondaryDark,
+          tertiaryDark,
+        ],
+      ),
+    );
+  }
+
   // Create light theme with Material You
   static ThemeData lightTheme(ColorScheme? dynamicColorScheme) {
     final colorScheme =
