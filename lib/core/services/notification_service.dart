@@ -87,8 +87,15 @@ class NotificationService {
   }
 
   // Show alarm notification with full screen intent
+  // This will wake the device and show the alarm screen even when locked
   static Future<void> showAlarmNotification(AlarmModel alarm) async {
     final details = _buildNotificationDetails(alarm);
+    
+    // Store the alarm payload so the app can open it when launched
+    await StorageService.setPendingAlarmPayload(alarm.id);
+    
+    // Show the notification - the full-screen intent will automatically
+    // launch the app and show the alarm screen when the phone is locked
     await _notifications.show(
       alarm.id.hashCode,
       alarm.label ?? 'Alarm',
@@ -96,6 +103,17 @@ class NotificationService {
       details,
       payload: alarm.id,
     );
+    
+    // Also try to navigate immediately if the app is already running
+    // This handles the case when the phone is unlocked
+    if (NavigationService.canNavigate) {
+      // Small delay to ensure notification is shown first
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (NavigationService.canNavigate) {
+          NavigationService.navigateToAlarm(alarm.id);
+        }
+      });
+    }
   }
 
   // Schedule alarm notification
@@ -313,6 +331,25 @@ class NotificationService {
       onDidReceiveBackgroundNotificationResponse:
           configureCallbacks ? _onNotificationTapped : null,
     );
+
+    // Create alarm channel with full-screen intent support
+    // This is critical for alarms to work when phone is locked
+    final androidImplementation = _notifications
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    
+    if (androidImplementation != null) {
+      const alarmChannel = AndroidNotificationChannel(
+        'alarm_channel',
+        'Alarms',
+        description: 'Channel for alarm notifications',
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+        showBadge: false,
+      );
+      
+      await androidImplementation.createNotificationChannel(alarmChannel);
+    }
 
     if (requestPermissions) {
       await _requestPermissions();

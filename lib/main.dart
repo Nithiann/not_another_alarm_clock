@@ -58,7 +58,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Check for pending alarm immediately when app starts
+    // This handles the case when app is launched from full-screen intent
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService.flushPendingPayload();
+    });
+    // Also check after a short delay to ensure app is fully initialized
+    Future.delayed(const Duration(milliseconds: 500), () {
       NotificationService.flushPendingPayload();
     });
   }
@@ -71,8 +77,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When app comes to foreground, check for pending alarms
+    // This handles cases where the app was in background or killed
     if (state == AppLifecycleState.resumed) {
-      NotificationService.flushPendingPayload();
+      // Small delay to ensure app is ready
+      Future.delayed(const Duration(milliseconds: 200), () {
+        NotificationService.flushPendingPayload();
+      });
     }
   }
 
