@@ -68,6 +68,7 @@ class ChallengeSelectionBottomSheet extends StatelessWidget {
                   label: 'None',
                   description: 'Dismiss easily',
                   isSelected: selectedChallenge == -1,
+                  disabled: true,
                   onTap: () {
                     onChallengeSelected(-1);
                     Navigator.pop(context);
@@ -87,6 +88,7 @@ class ChallengeSelectionBottomSheet extends StatelessWidget {
                   icon: Icons.psychology_outlined,
                   label: 'Memory',
                   description: 'Remember pattern sequence',
+                  disabled: true,
                   isSelected: selectedChallenge == 1,
                   onTap: () {
                     onChallengeSelected(1);
@@ -97,6 +99,7 @@ class ChallengeSelectionBottomSheet extends StatelessWidget {
                   icon: Icons.vibration,
                   label: 'Shake',
                   description: 'Shake phone to dismiss',
+                  disabled: true,
                   isSelected: selectedChallenge == 2,
                   onTap: () {
                     onChallengeSelected(2);
@@ -107,6 +110,7 @@ class ChallengeSelectionBottomSheet extends StatelessWidget {
                   icon: Icons.qr_code_scanner_outlined,
                   label: 'Barcode',
                   description: 'Scan specific barcode',
+                  disabled: true,
                   isSelected: selectedChallenge == 3,
                   onTap: () {
                     onChallengeSelected(3);
@@ -139,6 +143,7 @@ class _ChallengeOption extends StatelessWidget {
   final String description;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool disabled;
 
   const _ChallengeOption({
     required this.icon,
@@ -146,60 +151,74 @@ class _ChallengeOption extends StatelessWidget {
     required this.description,
     required this.isSelected,
     required this.onTap,
+    this.disabled = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colorScheme.primaryContainer
-              : colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected
-                ? colorScheme.primary
-                : Colors.transparent,
-            width: 2,
+    return Opacity(
+      opacity: disabled ? 0.4 : 1.0,
+      child: InkWell(
+        onTap: disabled ? null : onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: disabled
+                ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+                : (isSelected
+                    ? colorScheme.primaryContainer
+                    : colorScheme.surfaceContainerHighest),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: disabled
+                  ? Colors.transparent
+                  : (isSelected
+                      ? colorScheme.primary
+                      : Colors.transparent),
+              width: 2,
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 32,
-              color: isSelected
-                  ? colorScheme.onPrimaryContainer
-                  : colorScheme.onSurface,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: isSelected
-                    ? colorScheme.onPrimaryContainer
-                    : colorScheme.onSurface,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 32,
+                color: disabled
+                    ? colorScheme.onSurface.withValues(alpha: 0.4)
+                    : (isSelected
+                        ? colorScheme.onPrimaryContainer
+                        : colorScheme.onSurface),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              description,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: isSelected
-                    ? colorScheme.onPrimaryContainer.withValues(alpha: 0.8)
-                    : colorScheme.onSurface.withValues(alpha: 0.7),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: disabled
+                      ? colorScheme.onSurface.withValues(alpha: 0.4)
+                      : (isSelected
+                          ? colorScheme.onPrimaryContainer
+                          : colorScheme.onSurface),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                description,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: disabled
+                      ? colorScheme.onSurface.withValues(alpha: 0.3)
+                      : (isSelected
+                          ? colorScheme.onPrimaryContainer.withValues(alpha: 0.8)
+                          : colorScheme.onSurface.withValues(alpha: 0.7)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
