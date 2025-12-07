@@ -11,6 +11,7 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
+  static bool _isNavigatingToAlarm = false; // Guard to prevent multiple navigations
 
   static Future<void> initialize() async {
     await _ensureInitialized(
@@ -48,9 +49,20 @@ class NotificationService {
   }
 
   static Future<void> flushPendingPayload() async {
+    // Prevent multiple navigations from multiple calls
+    if (_isNavigatingToAlarm) return;
+    
     final payload = StorageService.consumePendingAlarmPayload();
     if (payload != null) {
-      NavigationService.navigateToAlarm(payload);
+      _isNavigatingToAlarm = true;
+      try {
+        await NavigationService.navigateToAlarm(payload);
+      } finally {
+        // Reset after a delay to allow navigation to complete
+        Future.delayed(const Duration(seconds: 2), () {
+          _isNavigatingToAlarm = false;
+        });
+      }
     }
   }
 
@@ -70,20 +82,19 @@ class NotificationService {
       return;
     }
 
-    // Handle regular alarm tap - always store payload so app can open it
+    // Handle regular alarm tap
+    // For full-screen intent notifications, the app is automatically launched by Android
+    // We only need to store the payload - flushPendingPayload will handle navigation
+    // Don't navigate here to avoid double opening
+    // The full-screen intent will launch the app, and flushPendingPayload will navigate
     final alarmId = payload;
-    // Store the payload so the app can open it when it starts or resumes
     StorageService.setPendingAlarmPayload(alarmId);
     
-    // If app is already running, try to navigate immediately
-    if (NavigationService.canNavigate) {
-      // Use a small delay to ensure the app is ready
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (NavigationService.canNavigate) {
-          NavigationService.navigateToAlarm(alarmId);
-        }
-      });
-    }
+    // Don't navigate here - let flushPendingPayload handle it
+    // This prevents double opening when:
+    // 1. Full-screen intent launches the app (Android system)
+    // 2. flushPendingPayload navigates to alarm screen (our code)
+    // If we also navigate here, we get double opening
   }
 
   // Show alarm notification with full screen intent
@@ -96,6 +107,8 @@ class NotificationService {
     
     // Show the notification - the full-screen intent will automatically
     // launch the app and show the alarm screen when the phone is locked
+    // The full-screen intent will also work when the phone is unlocked
+    // No need for manual navigation as it causes double opening
     await _notifications.show(
       alarm.id.hashCode,
       alarm.label ?? 'Alarm',
@@ -103,17 +116,6 @@ class NotificationService {
       details,
       payload: alarm.id,
     );
-    
-    // Also try to navigate immediately if the app is already running
-    // This handles the case when the phone is unlocked
-    if (NavigationService.canNavigate) {
-      // Small delay to ensure notification is shown first
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (NavigationService.canNavigate) {
-          NavigationService.navigateToAlarm(alarm.id);
-        }
-      });
-    }
   }
 
   // Schedule alarm notification

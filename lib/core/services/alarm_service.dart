@@ -21,18 +21,15 @@ Future<void> alarmCallback(int id, Map<String, dynamic> params) async {
     // Store the alarm ID so the app can open it when it starts
     await StorageService.setPendingAlarmPayload(alarm.id);
 
+    // Cancel any scheduled notification backup to prevent double opening
+    // (This is a safety measure in case a backup was scheduled before this fix)
+    await NotificationService.cancelNotification(id);
+
     // Show full screen notification - this should automatically launch the app
     // The full-screen intent will wake the device and show the alarm screen
+    // Don't manually launch the app here - it causes double opening
+    // The full-screen intent notification handles launching the app automatically
     await NotificationService.showAlarmNotification(alarm);
-
-    // Try to launch the app directly using platform channel
-    // This is a fallback in case the full-screen intent doesn't work
-    try {
-      await _launchAppFromBackground();
-    } catch (e) {
-      debugPrint('Could not launch app directly: $e');
-      // Continue anyway - the notification should handle it
-    }
 
     // If it's a repeating alarm, reschedule it
     if (alarm.isRepeating) {
@@ -81,10 +78,9 @@ class AlarmService {
         params: alarm.toJson(),
       );
 
-      if (success) {
-        // Schedule notification as backup
-        await NotificationService.scheduleAlarmNotification(alarm);
-      }
+      // Don't schedule a backup notification - the alarm manager with alarmClock: true
+      // should be reliable, and having both causes double opening issues
+      // The alarmCallback will show the notification with full-screen intent
 
       return success;
     } catch (e) {

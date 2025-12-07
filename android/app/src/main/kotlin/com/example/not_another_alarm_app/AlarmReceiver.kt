@@ -15,15 +15,9 @@ class AlarmReceiver : BroadcastReceiver() {
         )
         wakeLock.acquire(10 * 60 * 1000L) // 10 minutes max
         
-        // Launch the MainActivity
-        val launchIntent = Intent(context, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
-            putExtra("alarm_id", intent.getStringExtra("alarm_id"))
-        }
-        context.startActivity(launchIntent)
+        // Don't launch MainActivity here - the full-screen intent notification will handle it
+        // Launching here causes double opening of the alarm screen
+        // The notification service's full-screen intent will automatically launch the app
         
         // Release wake lock after a short delay
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
