@@ -231,7 +231,7 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
                                       currentPatternForInput.length &&
                                   currentPatternForInput[selectionOrder] ==
                                       cellValue
-                              ? colorScheme.primary
+                              ? Colors.green
                               : colorScheme.error)
                         : colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
