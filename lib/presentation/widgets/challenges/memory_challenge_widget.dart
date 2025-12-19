@@ -114,15 +114,13 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
             _isComplete = true;
             widget.onSolved(true);
           } else if (isValid) {
-            // Correct pattern, but more to go - challenge already moved to next pattern
             widget.onSolved(false);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Correct! Level ${widget.challenge.currentLevel - 1} of ${widget.challenge.totalLevels} complete. Next pattern...'),
-                duration: const Duration(seconds: 2),
+                duration: const Duration(seconds: 1),
               ),
             );
-            // Clear the input quickly, then show next pattern after delay
             Future.delayed(const Duration(milliseconds: 500), () {
               if (mounted) {
                 setState(() {
@@ -136,7 +134,6 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
               }
             });
           } else {
-            // Wrong pattern - show same pattern again (challenge already reset to show same pattern)
             widget.onSolved(false);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -187,7 +184,6 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 16),
-        // 3x3 Grid (cells numbered 1-9, left to right, top to bottom)
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -199,17 +195,13 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
           ),
           itemCount: 9,
           itemBuilder: (context, index) {
-            // Cell values are 1-9 (index 0-8 maps to value 1-9)
             final cellValue = index + 1;
             
-            // For showing pattern: highlight if it's the current cell being shown
-            // Use the stored pattern being shown to ensure consistency
             final patternToCheck = _isShowingPattern ? _patternBeingShown : widget.challenge.currentPattern;
             final isCurrentlyHighlighted = _isShowingPattern &&
                 _currentShowingIndex < patternToCheck.length &&
                 patternToCheck[_currentShowingIndex] == cellValue;
             
-            // For input mode: check if selected
             final isSelected = !_isShowingPattern && _selectedCells.contains(cellValue);
             final currentPatternForInput = widget.challenge.currentPattern;
             final selectionOrder = !_isShowingPattern && isSelected
@@ -257,7 +249,7 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
                   ),
                   child: Center(
                     child: Text(
-                      '$cellValue',
+                      '',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: isCurrentlyHighlighted || isSelected
                             ? colorScheme.onPrimary

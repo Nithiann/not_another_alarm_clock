@@ -279,6 +279,8 @@ Widget build(BuildContext context) {
     resizeToAvoidBottomInset: true,
     body: Container(
       decoration: AppTheme.gradientDecoration(colorScheme),
+      width: double.infinity,
+      height: MediaQuery.of(context).size.height,
       child: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.only(
