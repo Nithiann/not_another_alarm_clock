@@ -21,12 +21,14 @@ class MemoryChallengeWidget extends StatefulWidget {
 }
 
 class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
-  List<int> _selectedCells = [];
+  final List<int> _selectedCells = [];
   bool _isComplete = false;
   bool _isShowingPattern = true;
   int _currentShowingIndex = 0;
-  List<int> _patternBeingShown = []; // Store the pattern we're currently showing
+  List<int> _patternBeingShown =
+      [];
   Timer? _patternTimer;
+  bool _levelSucceeded = false; 
 
   @override
   void initState() {
@@ -41,17 +43,13 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
   }
 
   void _startShowingPattern() {
-    // Cancel any existing timer first
     _patternTimer?.cancel();
-    
-    // Get the current pattern once at the start and store it
-    // This ensures we show the complete pattern even if the challenge state changes
+
     final patternToShow = List<int>.from(widget.challenge.currentPattern);
     if (patternToShow.isEmpty) {
       return;
     }
 
-    // Reset state and store the pattern we're about to show
     setState(() {
       _isShowingPattern = true;
       _currentShowingIndex = 0;
@@ -60,8 +58,6 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
       _patternBeingShown = patternToShow; // Store the pattern
     });
 
-    // Show pattern automatically - each cell lights up for 800ms
-    // Start immediately with index 0 (already set above), then advance every 800ms
     int tickCount = 0;
     _patternTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
       if (!mounted) {
@@ -71,11 +67,9 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
 
       setState(() {
         tickCount++;
-        // Advance to next cell in the pattern
         if (tickCount < _patternBeingShown.length) {
           _currentShowingIndex = tickCount;
         } else {
-          // Pattern showing complete, wait a bit then switch to input mode
           timer.cancel();
           Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted) {
@@ -95,29 +89,29 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
     if (_isShowingPattern || _isComplete) return;
 
     setState(() {
-      // Check if cell is already selected - allow deselecting
       if (_selectedCells.contains(cellValue)) {
-        // Only allow removing the last selected cell
-        if (_selectedCells.isNotEmpty && 
-            _selectedCells.last == cellValue) {
+        if (_selectedCells.isNotEmpty && _selectedCells.last == cellValue) {
           _selectedCells.removeLast();
         }
       } else {
         _selectedCells.add(cellValue);
 
-        // Check if pattern is complete
         if (_selectedCells.length == widget.challenge.currentPatternLength) {
           final isValid = widget.challenge.validatePattern(_selectedCells);
-          
+
           if (isValid && widget.challenge.isComplete) {
-            // All patterns completed!
             _isComplete = true;
             widget.onSolved(true);
           } else if (isValid) {
             widget.onSolved(false);
+            setState(() {
+              _levelSucceeded = true;
+            });
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Correct! Level ${widget.challenge.currentLevel - 1} of ${widget.challenge.totalLevels} complete. Next pattern...'),
+                content: Text(
+                  'Correct! Level ${widget.challenge.currentLevel - 1} of ${widget.challenge.totalLevels} complete. Next pattern...',
+                ),
                 duration: const Duration(seconds: 1),
               ),
             );
@@ -125,6 +119,7 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
               if (mounted) {
                 setState(() {
                   _selectedCells.clear();
+                  _levelSucceeded = false;
                 });
                 Future.delayed(const Duration(milliseconds: 2500), () {
                   if (mounted) {
@@ -196,17 +191,24 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
           itemCount: 9,
           itemBuilder: (context, index) {
             final cellValue = index + 1;
-            
-            final patternToCheck = _isShowingPattern ? _patternBeingShown : widget.challenge.currentPattern;
-            final isCurrentlyHighlighted = _isShowingPattern &&
+
+            final patternToCheck = _isShowingPattern
+                ? _patternBeingShown
+                : widget.challenge.currentPattern;
+            final isCurrentlyHighlighted =
+                _isShowingPattern &&
                 _currentShowingIndex < patternToCheck.length &&
                 patternToCheck[_currentShowingIndex] == cellValue;
-            
-            final isSelected = !_isShowingPattern && _selectedCells.contains(cellValue);
+
+            final isSelected =
+                !_isShowingPattern && _selectedCells.contains(cellValue);
             final currentPatternForInput = widget.challenge.currentPattern;
             final selectionOrder = !_isShowingPattern && isSelected
                 ? _selectedCells.indexOf(cellValue)
                 : -1;
+            
+            final shouldShowSuccessBlue = _levelSucceeded && 
+                _selectedCells.contains(cellValue);
 
             return Material(
               color: Colors.transparent,
@@ -221,23 +223,29 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
                   decoration: BoxDecoration(
                     color: isCurrentlyHighlighted
                         ? colorScheme.primary
+                        : shouldShowSuccessBlue
+                        ? Colors.green
                         : isSelected
-                            ? (selectionOrder >= 0 && 
-                                selectionOrder < currentPatternForInput.length &&
-                                currentPatternForInput[selectionOrder] == cellValue
-                                ? colorScheme.primary
-                                : colorScheme.error)
-                            : colorScheme.surfaceContainerHighest,
+                        ? (selectionOrder >= 0 &&
+                                  selectionOrder <
+                                      currentPatternForInput.length &&
+                                  currentPatternForInput[selectionOrder] ==
+                                      cellValue
+                              ? colorScheme.primary
+                              : colorScheme.error)
+                        : colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isCurrentlyHighlighted
                           ? colorScheme.primary
+                          : shouldShowSuccessBlue
+                          ? colorScheme.primary
                           : isSelected
-                              ? colorScheme.primary
-                              : colorScheme.outline.withValues(alpha: 0.3),
-                      width: isCurrentlyHighlighted || isSelected ? 2 : 1,
+                          ? colorScheme.primary
+                          : colorScheme.outline.withValues(alpha: 0.3),
+                      width: isCurrentlyHighlighted || isSelected || shouldShowSuccessBlue ? 2 : 1,
                     ),
-                    boxShadow: isCurrentlyHighlighted
+                    boxShadow: isCurrentlyHighlighted || shouldShowSuccessBlue
                         ? [
                             BoxShadow(
                               color: colorScheme.primary.withValues(alpha: 0.5),
@@ -250,12 +258,13 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
                   child: Center(
                     child: Text(
                       '',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: isCurrentlyHighlighted || isSelected
-                            ? colorScheme.onPrimary
-                            : colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            color: isCurrentlyHighlighted || isSelected || shouldShowSuccessBlue
+                                ? colorScheme.onPrimary
+                                : colorScheme.onSurface,
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                   ),
                 ),
@@ -276,7 +285,9 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
           Text(
             'Tap the cells in order: ${_selectedCells.length}/${widget.challenge.currentPattern.length}',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: _selectedCells.length == widget.challenge.currentPattern.length
+              color:
+                  _selectedCells.length ==
+                      widget.challenge.currentPattern.length
                   ? colorScheme.primary
                   : colorScheme.onSurface,
               fontWeight: FontWeight.w500,
@@ -316,4 +327,3 @@ class _MemoryChallengeWidgetState extends State<MemoryChallengeWidget> {
     );
   }
 }
-

@@ -47,11 +47,11 @@ class MemoryChallenge extends AlarmChallenge {
     _showingIndex = 0;
 
     final rng = Random();
-    
+
     // Generate 2 patterns: one with 4 cells, one with 5 cells
     _patterns.add(_generatePattern(rng, 4));
     _patterns.add(_generatePattern(rng, 5));
-    
+
     _completedPatterns.addAll([false, false]);
   }
 
@@ -100,14 +100,14 @@ class MemoryChallenge extends AlarmChallenge {
   if (_patterns.isEmpty || _currentPatternIndex >= _patterns.length) {
     return false;
   }
-  
+
   final correctPattern = _patterns[_currentPatternIndex];
   if (selectedCells.length != correctPattern.length) {
     return false;
   }
-  
+
   final isCorrect = _areSequencesEqual(selectedCells, correctPattern);
-  
+
   if (isCorrect) {
     _completedPatterns[_currentPatternIndex] = true;
     // Move to next pattern if available
@@ -122,7 +122,7 @@ class MemoryChallenge extends AlarmChallenge {
     // Pattern was wrong - just reset to show same pattern again (don't regenerate)
     _showingPattern = true;
     _showingIndex = 0;
-    return false;
+    return true;
   }
 }
 
@@ -140,4 +140,3 @@ class MemoryChallenge extends AlarmChallenge {
   // Note: buildCustomInput is no longer used as we now use the factory pattern
   // in ChallengeWidget to select the appropriate widget
 }
-
