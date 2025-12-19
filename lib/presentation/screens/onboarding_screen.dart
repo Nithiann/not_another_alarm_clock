@@ -100,10 +100,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     _OnboardingPage(
                       title: 'Smart wake-up tools',
                       description:
-                          '• Math & memory challenges\n (coming soon)\n'
+                          '• Math & Memory challenges\n'
                           '• Radio alarm streams\n'
                           '• Google Drive backups\n (coming soon)\n'
-                          '• Vibration & snooze controls',
+                          '• Vibration & snooze controls (coming soon)',
                       icon: Icons.tips_and_updates_outlined,
                       color: colorScheme.secondaryContainer,
                     ),
