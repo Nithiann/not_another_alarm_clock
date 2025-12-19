@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionService {
@@ -53,6 +54,35 @@ class PermissionService {
     if (!Platform.isAndroid) return true;
     return Permission.ignoreBatteryOptimizations.status
         .then((value) => value.isGranted);
+  }
+
+  static const MethodChannel _permissionChannel = MethodChannel(
+    'com.nithiann.not_another_alarm_clock/permissions',
+  );
+
+  static Future<bool> hasFullScreenIntentPermission() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      final result = await _permissionChannel.invokeMethod<bool>(
+        'hasFullScreenIntentPermission',
+      );
+      return result ?? false;
+    } catch (e) {
+      // If method channel fails, assume permission is granted (Android 11 and below)
+      return true;
+    }
+  }
+
+  static Future<bool> requestFullScreenIntentPermission() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      await _permissionChannel.invokeMethod('requestFullScreenIntentPermission');
+      // Wait a bit for user to return from settings, then check status
+      await Future.delayed(const Duration(milliseconds: 500));
+      return await hasFullScreenIntentPermission();
+    } catch (e) {
+      return false;
+    }
   }
 }
 

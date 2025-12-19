@@ -1,11 +1,14 @@
 package com.nithiann.not_another_alarm_clock
 
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
+import android.os.Build
 import android.os.PowerManager
+import android.provider.Settings
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -14,6 +17,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.nithiann.not_another_alarm_clock/system_sounds"
     private val APP_LAUNCH_CHANNEL = "com.nithiann.not_another_alarm_clock/app_launch"
+    private val PERMISSION_CHANNEL = "com.nithiann.not_another_alarm_clock/permissions"
     private var currentMediaPlayer: MediaPlayer? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -28,6 +32,45 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     } catch (e: Exception) {
                         result.error("ERROR", "Failed to launch app: ${e.message}", null)
+                    }
+                }
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+        
+        // Method channel for permissions
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PERMISSION_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "hasFullScreenIntentPermission" -> {
+                    try {
+                        val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                            notificationManager.canUseFullScreenIntent()
+                        } else {
+                            // On Android 11 and below, full screen intent is granted automatically if declared in manifest
+                            true
+                        }
+                        result.success(hasPermission)
+                    } catch (e: Exception) {
+                        result.error("ERROR", "Failed to check full screen intent permission: ${e.message}", null)
+                    }
+                }
+                "requestFullScreenIntentPermission" -> {
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+                                data = Uri.parse("package:$packageName")
+                            }
+                            startActivity(intent)
+                            result.success(true)
+                        } else {
+                            // On Android 11 and below, permission is granted automatically
+                            result.success(true)
+                        }
+                    } catch (e: Exception) {
+                        result.error("ERROR", "Failed to request full screen intent permission: ${e.message}", null)
                     }
                 }
                 else -> {

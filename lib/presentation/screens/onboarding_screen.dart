@@ -18,6 +18,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _exactAlarmGranted = false;
   bool _overlayGranted = false;
   bool _batteryGranted = false;
+  bool _fullScreenIntentGranted = false;
 
   @override
   void initState() {
@@ -31,6 +32,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       PermissionService.hasExactAlarmPermission(),
       PermissionService.hasOverlayPermission(),
       PermissionService.hasBatteryOptimizationException(),
+      PermissionService.hasFullScreenIntentPermission(),
     ]);
     if (!mounted) return;
     setState(() {
@@ -38,6 +40,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       _exactAlarmGranted = results[1];
       _overlayGranted = results[2];
       _batteryGranted = results[3];
+      _fullScreenIntentGranted = results[4];
     });
   }
 
@@ -58,7 +61,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       _notificationGranted &&
       _exactAlarmGranted &&
       _batteryGranted &&
-      _overlayGranted;
+      _overlayGranted &&
+      _fullScreenIntentGranted;
 
   @override
   Widget build(BuildContext context) {
@@ -187,6 +191,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           color: colorScheme.errorContainer,
           onPressed: () => _handlePermissionRequest(
             PermissionService.requestBatteryOptimizationException,
+          ),
+        ),
+        _PermissionTile(
+          title: 'Full screen intent',
+          description: 'Show alarms even when the phone is locked.',
+          granted: _fullScreenIntentGranted,
+          color: colorScheme.primaryContainer,
+          onPressed: () => _handlePermissionRequest(
+            PermissionService.requestFullScreenIntentPermission,
           ),
         ),
         const Spacer(),
